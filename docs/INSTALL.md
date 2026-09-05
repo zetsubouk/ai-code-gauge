@@ -22,13 +22,13 @@
 
 - **提示「API Key 无效」**：密钥拼写/复制有误，或该 Key 未关联 Coding Plan 套餐。
 - **「仅限在官方工具中使用」类错误**：套餐额度只认支持工具内的调用；本扩展只是查询，不影响此限制。
-- **24h 用量全 0 / 空白**：账号在该时段无对应消费，属正常。
+- **OpenCode Go 查询失败**：opencode.ai 面向国际用户，需保证该域名可访问；Key 无效时接口返回 401。
 - **改动代码后不生效**：在 `chrome://extensions` 点扩展卡片上的「重新加载」。
 
 ## 四、打包发布（Chrome Web Store 用）
 
 ```bash
-npm run build        # 在项目根目录执行，生成 dist/glm-usage-monitor.zip
+npm run build        # 在项目根目录执行，生成 dist/ai-code-gauge.zip
 ```
 
 产物内含 `manifest.json / icons / background / popup / shared`，可直接上传到

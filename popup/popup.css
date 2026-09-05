@@ -19,23 +19,23 @@ body {
   font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
   background: var(--bg);
   color: var(--text);
-  width: 356px;
+  /* 宽度随供应商数量自适应：单栏 360px、双栏 560px（Chrome 弹窗上限 800px） */
+  width: 360px;
   min-height: 220px;
+  transition: width .25s ease;
   -webkit-font-smoothing: antialiased;
 }
+body.wide { width: 560px; }
+
+/* ============ 品牌 logo（仪表盘 SVG） ============ */
+.logo-svg { width: 44px; height: 44px; flex: none; display: block; }
+.logo-svg.small { width: 34px; height: 34px; }
 
 /* ============ 设置页 ============ */
 .setup-head {
   display: flex; gap: 12px; align-items: center;
   padding: 16px 18px;
   background: linear-gradient(135deg, #26337f 0%, #3a35a8 50%, #5b3fc6 100%);
-}
-.logo {
-  width: 44px; height: 44px; border-radius: 11px; flex: none;
-  background: rgba(255,255,255,.13);
-  border: 1px solid rgba(255,255,255,.2);
-  display: grid; place-items: center;
-  font-weight: 800; font-size: 14px; letter-spacing: .04em; color: #fff;
 }
 .setup-title h1 { font-size: 16px; color: #fff; }
 .setup-title p { font-size: 12px; color: rgba(255,255,255,.78); margin-top: 2px; }
@@ -61,7 +61,7 @@ button.primary:hover { filter: brightness(1.08); }
 .msg.bad { color: var(--bad); }
 .privacy { margin-top: 12px; font-size: 11px; color: var(--muted); text-align: center; }
 
-/* ============ 主面板 ============ */
+/* ============ 主面板头部 ============ */
 .head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 16px;
@@ -69,7 +69,6 @@ button.primary:hover { filter: brightness(1.08); }
   border-bottom: 1px solid var(--line);
 }
 .brand { display: flex; align-items: center; gap: 10px; }
-.logo.small { width: 34px; height: 34px; border-radius: 9px; font-size: 12px; }
 .brand-title { font-size: 14px; font-weight: 700; }
 .brand .sub { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
 .plan-badge {
@@ -92,47 +91,74 @@ button.primary:hover { filter: brightness(1.08); }
 .icon-btn.spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.status {
-  margin: 10px 16px 0; padding: 8px 10px; border-radius: 8px;
-  font-size: 12px; background: rgba(245,166,35,.12); color: var(--warn);
+/* 错误提示：左侧色边提示条 */
+.status, .plan-err {
+  margin: 10px 14px 0; padding: 8px 11px; border-radius: 8px;
+  font-size: 12px;
+  background: rgba(255,92,92,.12); color: var(--bad); border-left: 3px solid var(--bad);
 }
-.status.bad { background: rgba(255,92,92,.13); color: var(--bad); }
-.plan-err {
-  margin: 10px 16px 0; padding: 9px 11px; border-radius: 8px;
-  font-size: 12px; background: rgba(255,92,92,.12); color: var(--bad);
-}
+.status { background: rgba(245,166,35,.10); color: var(--warn); border-left-color: var(--warn); }
+.status.bad { background: rgba(255,92,92,.12); color: var(--bad); border-left-color: var(--bad); }
 
-/* ============ 额度列表（横向进度条） ============ */
-.limits { padding: 4px 16px 2px; }
-.limit { padding: 14px 0 13px; border-bottom: 1px solid var(--line); }
-.limit:last-child { border-bottom: 0; }
+/* ============ 分栏面板 ============ */
+.panes { display: grid; gap: 10px; padding: 12px 14px 2px; grid-template-columns: 1fr; }
+body.wide .panes { grid-template-columns: 1fr 1fr; }
+.pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px 8px; min-width: 0; }
+.pane-title { font-size: 12px; font-weight: 700; color: var(--muted); margin: 0 0 8px; display: flex; align-items: center; gap: 6px; }
+.pdot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.pdot.glm { background: var(--accent-2); }
+.pdot.go { background: #4f8cff; }
+
+/* ============ 额度卡片：名称+百分比 / 进度条 / 用量行 / 重置行 ============ */
+.limits { display: flex; flex-direction: column; gap: 8px; padding: 0; }
+.limit {
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px 12px 11px; min-width: 0;
+}
 .limit-top { display: flex; justify-content: space-between; align-items: baseline; }
 .limit-name { font-weight: 600; font-size: 13px; }
-.limit-pct { font-size: 22px; font-weight: 800; line-height: 1; }
-.limit-pct small { font-size: 13px; font-weight: 600; color: var(--muted); margin-left: 1px; }
+.limit-pct { font-size: 22px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.limit-pct small { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 1px; }
+/* 状态色联动：百分比数字与进度条同色，正常态保持默认文字色避免噪声 */
+.limit-pct.warn { color: var(--warn); }
+.limit-pct.bad { color: var(--bad); }
 .limit-track {
-  height: 9px; border-radius: 5px;
+  height: 8px; border-radius: 4px;
   background: var(--track); overflow: hidden;
-  margin: 9px 0 7px;
+  margin: 9px 0 8px;
 }
 .limit-fill {
-  height: 100%; border-radius: 5px;
-  background: linear-gradient(90deg, var(--accent), #3f51b5);
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
   transition: width .35s ease;
 }
 .limit-fill.warn { background: linear-gradient(90deg, #f5a623, #ff8a2b); }
 .limit-fill.bad { background: linear-gradient(90deg, #ff5c5c, #d32f2f); }
-.limit-info { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); }
-.limit-info .rem { color: var(--muted); }
-.limit-info .used b { color: var(--text); font-weight: 600; }
+/* 信息分段：用量一行，重置时间独立一行，互不挤压 */
+.limit-meta { font-size: 11.5px; color: var(--muted); }
+.limit-meta b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.limit-meta .sep { margin: 0 4px; opacity: .6; }
+.limit-reset {
+  display: flex; align-items: center; gap: 4px; margin-top: 3px;
+  font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.limit-reset .ic { flex: none; opacity: .8; }
 
-/* MCP（若有） */
-.mcp { margin: 2px 16px 2px; padding: 8px 0 2px; }
-.mcp-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 6px 0; }
+/* MCP 明细（若有） */
+.mcp { border-top: 1px dashed var(--line); margin-top: 8px; padding: 6px 2px 2px; }
+.mcp:empty { display: none; }
+.mcp-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 5px 0; }
 .mcp-row .l { color: var(--muted); font-weight: 600; }
-.mcp-row .v b { font-size: 13px; }
+.mcp-row .v { color: var(--muted); font-variant-numeric: tabular-nums; }
+.mcp-row .v b { font-size: 13px; color: var(--text); }
 
 .empty { padding: 14px; text-align: center; color: var(--muted); font-size: 12px; }
+
+/* ============ 底部状态栏 ============ */
+.foot {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 16px 11px;
+}
 
 /* ============ 设置：供应商复选 ============ */
 .prov-block {
@@ -146,12 +172,3 @@ button.primary:hover { filter: brightness(1.08); }
 .prov-name { font-size: 13px; color: var(--text); }
 .prov-fields { margin-top: 10px; }
 .prov-fields[hidden] { display: none; }
-
-/* ============ 分栏面板 ============ */
-.panes { display: grid; gap: 8px; padding: 10px 14px 0; }
-.panes.two { grid-template-columns: 1fr 1fr; }
-.panes:not(.two) { grid-template-columns: 1fr; }
-.pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px 4px; }
-.pane-title { font-size: 12px; font-weight: 700; color: var(--muted); margin: 2px 0 2px; }
-.pane .limits { padding: 2px 0; }
-.pane .mcp { margin: 0; padding-bottom: 2px; }

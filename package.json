@@ -1,9 +1,9 @@
 {
-  "name": "glm-usage-monitor-extension",
+  "name": "ai-code-gauge",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "GLM Coding Plan 用量监控 Chrome 扩展",
+  "description": "AI 码表 CodeGauge —— 多供应商 AI Coding Plan 用量监控 Chrome 扩展",
   "scripts": {
     "test:api": "node scripts/test-api.mjs",
     "icons": "python scripts/gen_icons.py",

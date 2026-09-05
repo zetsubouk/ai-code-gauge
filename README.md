@@ -1,6 +1,6 @@
 <div align="center">
 
-# GLM Coding Plan 用量监控
+# AI 码表 CodeGauge
 
 **多供应商 AI Coding Plan 用量监控面板（Chrome 扩展）**
 
@@ -91,7 +91,7 @@
 - 共享模块 `shared/`：接口封装 / 平台常量 / 格式化
 
 ```
-GLM Coding Plan 用量监控/
+ai-code-gauge/
 ├── manifest.json              # MV3 配置
 ├── background/service-worker.js # 定时刷新、徽章、缓存
 ├── popup/                     # 弹窗 UI（html/css/js）
@@ -126,4 +126,4 @@ npm run build      # 打包发布 zip 到 dist/
 
 ---
 
-*本项目与智谱官方无任何关联，为社区独立开发，仅作个人用量监控用途。*
+*本项目与智谱、OpenCode 等供应商官方无任何关联，为社区独立开发，仅作个人用量监控用途。*

@@ -1,4 +1,5 @@
-// 弹窗逻辑：渲染多供应商用量（GLM 智谱大陆 / OpenCode Go）；每次打开强刷；错误显式暴露。
+// 弹窗逻辑：渲染多供应商用量（GLM 智谱大陆 / OpenCode Go），额度卡片分段展示（用量一行、重置时间独立一行）；
+// 每次打开强刷；错误显式暴露。
 
 import { nf, fmtTime, fmtRemain, pctColor, daysLeft } from "../shared/format.js";
 import { LEVEL_NAMES } from "../shared/constants.js";
@@ -16,6 +17,7 @@ const els = {
   panes: $("panes"), paneGlm: $("pane-glm"), paneGo: $("pane-go"),
   limits: $("limits"), mcp: $("mcp-wrap"), goLimits: $("go-limits"),
   btnSettings: $("btn-settings"), btnRefresh: $("btn-refresh"),
+  footRefresh: $("foot-refresh"),
 };
 
 function shortError(e) { return e && e.message ? e.message : (e || "未知错误"); }
@@ -27,66 +29,64 @@ function classify(limit) {
   return "other";
 }
 
-/* ---------- 横向进度条（GLM） ---------- */
+/* ---------- 额度卡片：名称+百分比 / 进度条 / 用量行 / 重置行 ---------- */
+const CLOCK_SVG = '<svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+
+// 状态类：≥95 红、≥80 黄，进度条与百分比数字联动
+function stateCls(pct) { return pct >= 95 ? " bad" : pct >= 80 ? " warn" : ""; }
+
 function limitBar(limit, label) {
   const pct = Math.max(0, Math.min(100, Number(limit.percentage || 0)));
+  const cls = stateCls(pct);
   const used = Number(limit.currentValue || 0);
   const total = Number(limit.usage || 0);
   const remaining = limit.remaining;
   const el = document.createElement("div");
   el.className = "limit";
 
-  const top = document.createElement("div");
-  top.className = "limit-top";
-  top.innerHTML = `<span class="limit-name">${label}</span>
-    <span class="limit-pct">${Math.round(pct)}<small>%</small></span>`;
-  el.appendChild(top);
+  // 用量行：已用/总额/剩余聚合为一行，不再与重置时间混排
+  const metaParts = [];
+  if (total && used) metaParts.push(`已用 <b>${nf(used)}</b> / ${nf(total)} 积分`);
+  else if (used) metaParts.push(`已用 <b>${nf(used)}</b>`);
+  if (remaining !== undefined && remaining !== null) metaParts.push(`剩余 <b>${nf(remaining)}</b>`);
+  // 重置行：独立一行弱化展示
+  const resetText = limit.nextResetTime
+    ? `${fmtRemain(limit.nextResetTime - Date.now())}后重置`
+    : "";
 
-  const track = document.createElement("div");
-  track.className = "limit-track";
-  const fill = document.createElement("div");
-  fill.className = "limit-fill" + (pct >= 80 ? (pct >= 95 ? " bad" : " warn") : "");
-  fill.style.width = pct + "%";
-  track.appendChild(fill);
-  el.appendChild(track);
-
-  const info = document.createElement("div");
-  info.className = "limit-info";
-  let left = "";
-  if (total && used) left = `已用 <b>${nf(used)}</b> / ${nf(total)} 积分`;
-  else if (used) left = `已用 <b>${nf(used)}</b>`;
-  const parts = [];
-  if (remaining !== undefined && remaining !== null) parts.push(`剩余 <b>${nf(remaining)}</b>`);
-  if (limit.nextResetTime) parts.push(`${fmtRemain(limit.nextResetTime - Date.now())}后重置`);
-  info.innerHTML = `<span class="used">${left}</span><span class="rem">${parts.join(" · ")}</span>`;
-  el.appendChild(info);
+  el.innerHTML = `
+    <div class="limit-top">
+      <span class="limit-name">${label}</span>
+      <span class="limit-pct${cls}">${Math.round(pct)}<small>%</small></span>
+    </div>
+    <div class="limit-track"><div class="limit-fill${cls}" style="width:${pct}%"></div></div>
+    <div class="limit-meta">${metaParts.join('<span class="sep">·</span>')}</div>
+    <div class="limit-reset">${CLOCK_SVG}<span>${resetText}</span></div>`;
   return el;
 }
 
-/* ---------- OpenCode Go 进度条 ---------- */
+/* ---------- OpenCode Go 额度卡片（与 GLM 同构） ---------- */
 function goBar(w) {
   const pct = Math.max(0, Math.min(100, Number(w.percent) || 0));
+  const cls = stateCls(pct);
   const el = document.createElement("div");
   el.className = "limit";
-  const top = document.createElement("div");
-  top.className = "limit-top";
-  top.innerHTML = `<span class="limit-name">${w.name}</span>
-    <span class="limit-pct">${Math.round(pct)}<small>%</small></span>`;
-  el.appendChild(top);
-  const track = document.createElement("div");
-  track.className = "limit-track";
-  const fill = document.createElement("div");
-  fill.className = "limit-fill" + (pct >= 80 ? (pct >= 95 ? " bad" : " warn") : "");
-  fill.style.width = pct + "%";
-  track.appendChild(fill);
-  el.appendChild(track);
-  const info = document.createElement("div");
-  info.className = "limit-info";
-  const right = [];
-  if (w.limit) right.push(`限额 <b>$${w.limit}</b>`);
-  if (w.endTs) right.push(`${fmtRemain(w.endTs - Date.now())}后重置`);
-  info.innerHTML = `<span class="used"></span><span class="rem">${right.join(" · ")}</span>`;
-  el.appendChild(info);
+
+  // Go 接口仅返回百分比，用量行展示已知美元限额
+  const metaParts = [];
+  if (w.limit) metaParts.push(`限额 <b>$${w.limit}</b>`);
+  const resetText = w.endTs
+    ? `${fmtRemain(w.endTs - Date.now())}后重置`
+    : "";
+
+  el.innerHTML = `
+    <div class="limit-top">
+      <span class="limit-name">${w.name}</span>
+      <span class="limit-pct${cls}">${Math.round(pct)}<small>%</small></span>
+    </div>
+    <div class="limit-track"><div class="limit-fill${cls}" style="width:${pct}%"></div></div>
+    <div class="limit-meta">${metaParts.join('<span class="sep">·</span>')}</div>
+    <div class="limit-reset">${CLOCK_SVG}<span>${resetText}</span></div>`;
   return el;
 }
 
@@ -122,25 +122,23 @@ function render(payload) {
   const glmShown = !!(glm && !(glm.error && !glm.limits));
   const goShown = !!(go && !go.error);
 
-  // 头部
-  const onlyGo = goShown && !glmShown;
-  if (onlyGo) {
-    els.brandTitle.textContent = "OpenCode Go";
-    els.planBadge.textContent = "Go";
-    els.planExpiry.textContent = "";
-    els.planExpiry.className = "plan-expiry";
-  } else {
-    els.brandTitle.textContent = "GLM Coding Plan";
-    const levelName = (glm && (glm.levelName || LEVEL_NAMES[glm.level])) || "";
-    els.planBadge.textContent = levelName && levelName !== "unknown" ? levelName : "";
-    els.planExpiry.textContent = "";
-    els.planExpiry.className = "plan-expiry";
-    if (glm && glm.planExpiry) {
-      els.planExpiry.textContent = `到期 ${glm.planExpiry}`;
-      const dl = daysLeft(glm.planExpiry);
-      if (dl !== null && dl < 0) { els.planExpiry.classList.add("bad"); els.planExpiry.textContent += "（已到期）"; }
-      else if (dl !== null && dl <= 7) { els.planExpiry.classList.add("warn"); els.planExpiry.textContent += `（剩 ${dl} 天）`; }
-    }
+  // 头部：标题固定为品牌名；徽章随主供应商（GLM 套餐等级 / 仅 Go 时显示 Go）
+  els.brandTitle.textContent = "AI 码表";
+  let badge = "";
+  if (glmShown && glm) {
+    const levelName = (glm.levelName || LEVEL_NAMES[glm.level]) || "";
+    if (levelName && levelName !== "unknown") badge = levelName;
+  } else if (goShown) {
+    badge = "Go";
+  }
+  els.planBadge.textContent = badge;
+  els.planExpiry.textContent = "";
+  els.planExpiry.className = "plan-expiry";
+  if (glmShown && glm && glm.planExpiry) {
+    els.planExpiry.textContent = `到期 ${glm.planExpiry}`;
+    const dl = daysLeft(glm.planExpiry);
+    if (dl !== null && dl < 0) { els.planExpiry.classList.add("bad"); els.planExpiry.textContent += "（已到期）"; }
+    else if (dl !== null && dl <= 7) { els.planExpiry.classList.add("warn"); els.planExpiry.textContent += `（剩 ${dl} 天）`; }
   }
   els.lastUpdated.textContent = payload.fetchedAt ? fmtTime(payload.fetchedAt) + " 更新" : "";
 
@@ -157,9 +155,9 @@ function render(payload) {
     els.statusBar.textContent = otherErrs.map((e) => `OpenCode Go：` + shortError(e)).join("；");
   }
 
-  // 分栏
+  // 分栏：双供应商时两栏并排并加宽弹窗，根治窄栏挤压换行
   const both = glmShown && goShown;
-  els.panes.classList.toggle("two", both);
+  document.body.classList.toggle("wide", both);
 
   // GLM 栏
   els.paneGlm.hidden = !glmShown;
@@ -233,6 +231,7 @@ async function init() {
   syncFieldsVisibility();
   els.fRefresh.value = String(got.refreshMin || 10);
   els.fCycle.value = String(got.badgeCycleSec || 10);
+  els.footRefresh.textContent = `每 ${got.refreshMin || 10} 分钟自动刷新`;
 
   const anyEnabled = (glm.enabled && glm.apiKey) || (go.enabled && go.apiKey);
   if (!anyEnabled) { showSetup(); return; }

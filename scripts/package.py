@@ -1,14 +1,14 @@
 #!/usr/bin/env python
-"""打包扩展为 dist/glm-usage-monitor.zip（仅运行时文件，无第三方依赖）。"""
+"""打包扩展为 dist/ai-code-gauge.zip（仅运行时文件，无第三方依赖）。"""
 import os, zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DIST = os.path.join(ROOT, "dist")
 RUNTIME = ["manifest.json", "icons", "background", "popup", "shared"]
-PREFIX = "glm-usage-monitor/"
+PREFIX = "ai-code-gauge/"
 
 os.makedirs(DIST, exist_ok=True)
-out = os.path.join(DIST, "glm-usage-monitor.zip")
+out = os.path.join(DIST, "ai-code-gauge.zip")
 with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
     for item in RUNTIME:
         src = os.path.join(ROOT, item)

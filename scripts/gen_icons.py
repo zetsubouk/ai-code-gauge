@@ -5,9 +5,11 @@
 供应商中立，与徽章百分比隐喻一致。仅依赖 Pillow。
 """
 import os
+import sys
 from PIL import Image, ImageDraw
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file)))
+# 兼容不注入 __file 的受限执行环境，退回 sys.argv[0] 定位项目根
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(globals().get("__file__", sys.argv[0]))))
 
 def make_icon(size):
     scale = size / 128.0

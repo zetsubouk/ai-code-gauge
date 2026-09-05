@@ -3,17 +3,37 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Coding Plan 用量</title>
+  <title>AI 码表</title>
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
+  <!-- 品牌 logo 符号定义：仪表盘（方案 A CodeGauge），供各处 use 引用 -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="lg-bg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#1c2436" /><stop offset="1" stop-color="#10141d" />
+      </linearGradient>
+      <linearGradient id="lg-arc" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#5b77ff" /><stop offset="1" stop-color="#8a6bff" />
+      </linearGradient>
+      <g id="gauge-logo">
+        <rect x="6" y="6" width="116" height="116" rx="28" fill="url(#lg-bg)" stroke="rgba(255,255,255,.1)" stroke-width="2" />
+        <path d="M 34.56 81 A 34 34 0 1 1 93.44 81" stroke="rgba(255,255,255,.14)" stroke-width="11" fill="none" stroke-linecap="round" />
+        <path d="M 34.56 81 A 34 34 0 0 1 80.38 34.19" stroke="url(#lg-arc)" stroke-width="11" fill="none" stroke-linecap="round" />
+        <line x1="64" y1="64" x2="73.2" y2="47.3" stroke="#fff" stroke-width="6" stroke-linecap="round" />
+        <circle cx="64" cy="64" r="7" fill="#fff" />
+        <circle cx="64" cy="64" r="2.6" fill="#5b77ff" />
+      </g>
+    </defs>
+  </svg>
+
   <!-- 设置 -->
   <section id="setup" class="setup" hidden>
     <div class="setup-head">
-      <div class="logo">GLM</div>
+      <svg class="logo-svg" viewBox="0 0 128 128"><use href="#gauge-logo" /></svg>
       <div class="setup-title">
-        <h1>配置供应商</h1>
-        <p>勾选你要监控的供应商并填入对应 API Key</p>
+        <h1>AI 码表</h1>
+        <p>Coding Plan 用量监控 · 配置供应商</p>
       </div>
     </div>
     <div class="setup-body">
@@ -79,13 +99,12 @@
   <section id="panel" class="panel" hidden>
     <header class="head">
       <div class="brand">
-        <div class="logo small">GLM</div>
+        <svg class="logo-svg small" viewBox="0 0 128 128"><use href="#gauge-logo" /></svg>
         <div>
-          <div class="brand-title" id="brand-title">GLM Coding Plan</div>
+          <div class="brand-title" id="brand-title">AI 码表</div>
           <div class="sub">
             <span id="plan-badge" class="plan-badge"></span>
             <span id="plan-expiry" class="plan-expiry"></span>
-            <span id="last-updated" class="muted"></span>
           </div>
         </div>
       </div>
@@ -101,16 +120,20 @@
     <!-- 分栏：GLM / OpenCode Go -->
     <div id="panes" class="panes">
       <section id="pane-glm" class="pane">
-        <div class="pane-title">智谱 GLM</div>
+        <div class="pane-title"><i class="pdot glm"></i>智谱 GLM</div>
         <div id="limits" class="limits"></div>
         <div id="mcp-wrap" class="mcp"></div>
       </section>
       <section id="pane-go" class="pane" hidden>
-        <div class="pane-title">OpenCode Go</div>
+        <div class="pane-title"><i class="pdot go"></i>OpenCode Go</div>
         <div id="go-limits" class="limits"></div>
       </section>
     </div>
 
+    <footer class="foot">
+      <span id="last-updated" class="muted"></span>
+      <span id="foot-refresh" class="muted"></span>
+    </footer>
   </section>
 
   <script type="module" src="popup.js"></script>
