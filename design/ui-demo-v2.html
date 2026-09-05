@@ -153,7 +153,8 @@ button.primary:hover { filter: brightness(1.08); }
 <div class="page">
   <div class="demo-head">
     <h1>AI Coding Gauge · UI v2 Demo</h1>
-    <p>品牌名英文化 + 订阅信息移入面板标题行 + 整体打磨。数据为静态模拟，确认后落地到扩展。</p>
+    <p>品牌名英文化 + 订阅信息移入面板标题行 + 整体打磨 + Go 当月到期推算。数据为静态模拟，确认后落地到扩展。</p>
+    <p>Go 到期口径：取「每月」窗口的重置时间（endTs）所在日历日，即当月套餐周期截止日；≤7 天变黄、已过变红，与 GLM 到期联动规则一致。</p>
   </div>
   <div class="controls">
     <div class="seg" id="views">
@@ -217,7 +218,7 @@ button.primary:hover { filter: brightness(1.08); }
           <div class="mcp" id="mcp"></div>
         </section>
         <section class="pane" id="pane-go">
-          <div class="pane-title"><i class="pdot go"></i>OpenCode Go</div>
+          <div class="pane-title"><i class="pdot go"></i>OpenCode Go<span class="plan-expiry" id="go-expiry"></span></div>
           <div class="limits" id="go-limits"></div>
         </section>
       </div>
@@ -307,6 +308,8 @@ const DATA = {
       { name: "每周", pct: 46, extra: "限额 <b>$30</b>", reset: "1 天后重置" },
       { name: "每月", pct: 46, extra: "限额 <b>$60</b>", reset: "11 天 5 小时后重置" },
     ],
+    // 到期日由月度窗口重置时间推算（mock 基准：今天 2026-09-06）
+    goExpiry: { text: "到期 2026-09-17", cls: "" },
   },
   warn: {
     glm: [
@@ -317,8 +320,9 @@ const DATA = {
     go: [
       { name: "5 小时", pct: 0, extra: "限额 <b>$12</b>", reset: "4 小时 57 分后重置" },
       { name: "每周", pct: 84, extra: "限额 <b>$30</b>", reset: "1 天后重置" },
-      { name: "每月", pct: 97, extra: "限额 <b>$60</b>", reset: "11 天 5 小时后重置" },
+      { name: "每月", pct: 97, extra: "限额 <b>$60</b>", reset: "2 天后重置" },
     ],
+    goExpiry: { text: "到期 2026-09-08（剩 2 天）", cls: "warn" },
   },
 };
 
@@ -331,6 +335,9 @@ function render(mode) {
       <span class="v"><b style="color:${m.pct >= 80 ? "var(--warn)" : "var(--ok)"}">${m.used}</b> / ${m.total} 次</span>
     </div>`).join("");
   document.getElementById("go-limits").innerHTML = d.go.map(limitCard).join("");
+  const goExp = document.getElementById("go-expiry");
+  goExp.textContent = d.goExpiry.text;
+  goExp.className = "plan-expiry" + (d.goExpiry.cls ? " " + d.goExpiry.cls : "");
 
   const v = mode || document.querySelector("#views .on").dataset.v;
   const popup = document.getElementById("popup");
