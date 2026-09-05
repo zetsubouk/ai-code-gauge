@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>品牌重命名 · 候选方案效果图</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0c0f15; --panel: #131822; --panel-2: #1a2030;
+  --line: rgba(255,255,255,.07); --text: #e9edf6; --muted: #8a92a4;
+  --accent: #5b77ff; --accent-2: #8a6bff;
+  --ok: #2fd57c; --warn: #f5a623; --bad: #ff5c5c;
+}
+body {
+  font: 13px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  background: #0a0d12; color: var(--text);
+  -webkit-font-smoothing: antialiased; padding: 28px 16px 46px;
+}
+.page { max-width: 1060px; margin: 0 auto; }
+.demo-head h1 { font-size: 18px; margin-bottom: 4px; }
+.demo-head p { font-size: 12px; color: var(--muted); }
+.pick {
+  margin-top: 14px; padding: 10px 14px; border-radius: 10px; font-size: 12.5px;
+  background: rgba(91,119,255,.12); border: 1px solid rgba(91,119,255,.35); color: var(--text);
+}
+.pick b { color: #aab8ff; }
+
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 18px; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 16px; position: relative; }
+.card.rec { border-color: rgba(91,119,255,.5); box-shadow: 0 0 0 1px rgba(91,119,255,.25), 0 14px 40px rgba(0,0,0,.4); }
+.tag { position: absolute; top: -10px; left: 14px; padding: 2px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; color: #fff; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+.logo-stage { display: grid; place-items: center; padding: 8px 0 4px; }
+.cname { text-align: center; margin-top: 6px; }
+.cname b { font-size: 16px; }
+.cname span { display: block; font-size: 11px; color: var(--muted); margin-top: 1px; letter-spacing: .06em; }
+.meta { margin: 12px 0 0; font-size: 12px; color: var(--muted); }
+.meta dt { font-size: 11px; color: #6b7386; margin-top: 7px; }
+.meta dd { color: var(--text); }
+.why { margin: 10px 0 0 16px; }
+.why li { font-size: 11.5px; color: var(--muted); margin: 4px 0; }
+.why b { color: var(--text); font-weight: 600; }
+
+.sizes { display: flex; align-items: flex-end; gap: 14px; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.sizes .s { text-align: center; }
+.sizes .s i { display: block; font-style: normal; font-size: 10px; color: #6b7386; margin-top: 5px; }
+
+/* 工具栏实装模拟 */
+.toolbar { margin-top: 12px; display: flex; align-items: center; gap: 8px;
+  background: #20242e; border-radius: 9px; padding: 8px 12px; }
+.tb-dot { width: 9px; height: 9px; border-radius: 50%; }
+.tb-url { flex: 1; background: #2a2f3b; border-radius: 6px; font-size: 11px; color: #7d8595; padding: 4px 10px; }
+.tb-ext { position: relative; display: grid; place-items: center; width: 22px; height: 22px; }
+.tb-badge { position: absolute; bottom: -3px; right: -6px; font-size: 8px; font-weight: 800; color: #fff;
+  padding: 0 3px; border-radius: 4px; line-height: 1.5; }
+
+/* 弹窗头部实装模拟 */
+.pop-head { margin-top: 12px; display: flex; align-items: center; justify-content: space-between;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.pop-brand { display: flex; align-items: center; gap: 9px; }
+.pop-title { font-size: 13px; font-weight: 700; }
+.pop-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* 替换范围 */
+.notes { margin-top: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
+.notes h2 { font-size: 13px; margin-bottom: 6px; }
+.notes li { font-size: 12px; color: var(--muted); margin: 4px 0 4px 18px; }
+.notes code { font-size: 11px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="demo-head">
+    <h1>品牌重命名 · 候选方案效果图</h1>
+    <p>项目已从「仅 GLM」演进为多供应商（智谱 GLM + OpenCode Go），命名与 logo 需供应商中立 · 以下均为 SVG 矢量稿，确认后由 gen_icons.py 重绘为 16/32/48/128 PNG</p>
+    <div class="pick">推荐 <b>方案 A「AI 码表 CodeGauge」</b>：与产品"实时占比仪表"隐喻最契合（徽章本就是百分比），且现有图标本就是仪表弧线，演进最平滑、16px 小尺寸辨识度最高。</div>
+  </div>
+
+  <div class="grid">
+    <!-- ===== 方案 A：AI 码表 CodeGauge ===== -->
+    <div class="card rec">
+      <div class="tag">推荐 · 方案 A</div>
+      <div class="logo-stage">
+        <svg width="104" height="104" viewBox="0 0 128 128">
+          <defs>
+            <linearGradient id="aBg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#1c2436"/><stop offset="1" stop-color="#10141d"/>
+            </linearGradient>
+            <linearGradient id="aArc" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#5b77ff"/><stop offset="1" stop-color="#8a6bff"/>
+            </linearGradient>
+          </defs>
+          <rect x="6" y="6" width="116" height="116" rx="28" fill="url(#aBg)" stroke="rgba(255,255,255,.10)" stroke-width="2"/>
+          <path d="M 34.56 81 A 34 34 0 1 1 93.44 81" stroke="rgba(255,255,255,.14)" stroke-width="11" fill="none" stroke-linecap="round"/>
+          <path d="M 34.56 81 A 34 34 0 0 1 80.38 34.19" stroke="url(#aArc)" stroke-width="11" fill="none" stroke-linecap="round"/>
+          <line x1="64" y1="64" x2="73.2" y2="47.3" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="64" cy="64" r="7" fill="#fff"/>
+          <circle cx="64" cy="64" r="2.6" fill="#5b77ff"/>
+        </svg>
+      </div>
+      <div class="cname"><b>AI 码表</b><span>CODEGAUGE</span></div>
+      <dl class="meta">
+        <dt>项目名（仓库 / package）</dt>
+        <dd>ai-code-gauge</dd>
+        <dt>程序名（manifest / 商店）</dt>
+        <dd>AI 码表 — Coding Plan 用量监控</dd>
+        <dt>弹窗标题</dt>
+        <dd>AI 码表（副题：Coding Plan 用量监控）</dd>
+      </dl>
+      <ul class="why">
+        <li><b>双关直达</b>：「码」= 代码，「码表」= 仪表盘，与工具栏百分比徽章/阈值变色（绿黄红）天然同构。</li>
+        <li><b>演进平滑</b>：现图标本就是仪表弧线，只换配色细节与加指针，用户零认知成本。</li>
+        <li><b>中立可扩展</b>：不绑定任何供应商，后续接入新家（如 Claude 等）不需改名。</li>
+        <li><b>检索友好</b>：主名简短，商店副题保留「Coding Plan 用量监控」关键词。</li>
+      </ul>
+      <div class="sizes">
+        <div class="s">
+          <svg width="48" height="48" viewBox="0 0 128 128"><use href="#iconA"/></svg><i>48px</i>
+        </div>
+        <div class="s">
+          <svg width="32" height="32" viewBox="0 0 128 128"><use href="#iconA"/></svg><i>32px</i>
+        </div>
+        <div class="s">
+          <svg width="16" height="16" viewBox="0 0 128 128"><use href="#iconA"/></svg><i>16px</i>
+        </div>
+      </div>
+      <div class="toolbar">
+        <span class="tb-dot" style="background:#ff5f57"></span><span class="tb-dot" style="background:#febc2e"></span><span class="tb-dot" style="background:#28c840"></span>
+        <span class="tb-url">chrome://extensions</span>
+        <span class="tb-ext">
+          <svg width="16" height="16" viewBox="0 0 128 128"><use href="#iconA"/></svg>
+          <span class="tb-badge" style="background:#2E7D32">12%</span>
+        </span>
+      </div>
+      <div class="pop-head">
+        <div class="pop-brand">
+          <svg width="34" height="34" viewBox="0 0 128 128"><use href="#iconA"/></svg>
+          <div>
+            <div class="pop-title">AI 码表</div>
+            <div class="pop-sub">Coding Plan 用量监控</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="icon-btn" title="设置" style="width:26px;height:26px;border-radius:7px;border:1px solid var(--line);background:var(--panel-2);color:var(--muted);cursor:pointer">⚙</button>
+          <button class="icon-btn" title="刷新" style="width:26px;height:26px;border-radius:7px;border:1px solid var(--line);background:var(--panel-2);color:var(--muted);cursor:pointer">⟳</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 方案 B：额度雷达 QuotaRadar ===== -->
+    <div class="card">
+      <div class="logo-stage">
+        <svg width="104" height="104" viewBox="0 0 128 128">
+          <defs>
+            <linearGradient id="bBg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#0f1a2e"/><stop offset="1" stop-color="#0b1220"/>
+            </linearGradient>
+            <linearGradient id="bSweep" gradientUnits="userSpaceOnUse" x1="64" y1="24" x2="98.6" y2="44">
+              <stop offset="0" stop-color="#4f8cff" stop-opacity=".6"/><stop offset="1" stop-color="#4f8cff" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <rect x="6" y="6" width="116" height="116" rx="28" fill="url(#bBg)" stroke="rgba(255,255,255,.10)" stroke-width="2"/>
+          <circle cx="64" cy="64" r="40" fill="none" stroke="rgba(79,140,255,.85)" stroke-width="3.5"/>
+          <circle cx="64" cy="64" r="27" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="3"/>
+          <circle cx="64" cy="64" r="14" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="3"/>
+          <path d="M 64 64 L 64 24 A 40 40 0 0 1 98.64 44 Z" fill="url(#bSweep)"/>
+          <circle cx="80" cy="42" r="5" fill="#2fd57c"/>
+          <circle cx="47" cy="80" r="5" fill="#f5a623"/>
+        </svg>
+      </div>
+      <div class="cname"><b>额度雷达</b><span>QUOTARADAR</span></div>
+      <dl class="meta">
+        <dt>项目名（仓库 / package）</dt>
+        <dd>quota-radar</dd>
+        <dt>程序名（manifest / 商店）</dt>
+        <dd>额度雷达 — AI Coding 用量监控</dd>
+        <dt>弹窗标题</dt>
+        <dd>额度雷达（副题：AI Coding 用量监控）</dd>
+      </dl>
+      <ul class="why">
+        <li><b>多供应商语义</b>：雷达"同时扫描多个目标"，正好对应双供应商独立拉取、故障隔离。</li>
+        <li><b>色点即阈值</b>：绿/黄信号点与告警色一致，隐喻"扫描到哪家常驻告警"。</li>
+        <li><b>四字稍长</b>：形象但不如两字主名干脆，徽章旁场景需靠图标辨识。</li>
+      </ul>
+      <div class="sizes">
+        <div class="s">
+          <svg width="48" height="48" viewBox="0 0 128 128"><use href="#iconB"/></svg><i>48px</i>
+        </div>
+        <div class="s">
+          <svg width="32" height="32" viewBox="0 0 128 128"><use href="#iconB"/></svg><i>32px</i>
+        </div>
+        <div class="s">
+          <svg width="16" height="16" viewBox="0 0 128 128"><use href="#iconB"/></svg><i>16px</i>
+        </div>
+      </div>
+      <div class="toolbar">
+        <span class="tb-dot" style="background:#ff5f57"></span><span class="tb-dot" style="background:#febc2e"></span><span class="tb-dot" style="background:#28c840"></span>
+        <span class="tb-url">chrome://extensions</span>
+        <span class="tb-ext">
+          <svg width="16" height="16" viewBox="0 0 128 128"><use href="#iconB"/></svg>
+          <span class="tb-badge" style="background:#2E7D32">12%</span>
+        </span>
+      </div>
+      <div class="pop-head">
+        <div class="pop-brand">
+          <svg width="34" height="34" viewBox="0 0 128 128"><use href="#iconB"/></svg>
+          <div>
+            <div class="pop-title">额度雷达</div>
+            <div class="pop-sub">AI Coding 用量监控</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button title="设置" style="width:26px;height:26px;border-radius:7px;border:1px solid var(--line);background:var(--panel-2);color:var(--muted);cursor:pointer">⚙</button>
+          <button title="刷新" style="width:26px;height:26px;border-radius:7px;border:1px solid var(--line);background:var(--panel-2);color:var(--muted);cursor:pointer">⟳</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 方案 C：用量脉搏 PlanPulse ===== -->
+    <div class="card">
+      <div class="logo-stage">
+        <svg width="104" height="104" viewBox="0 0 128 128">
+          <defs>
+            <linearGradient id="cBg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#141b2e"/><stop offset="1" stop-color="#0e1220"/>
+            </linearGradient>
+            <linearGradient id="cLine" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#2fd57c"/><stop offset=".55" stop-color="#5b77ff"/><stop offset="1" stop-color="#8a6bff"/>
+            </linearGradient>
+          </defs>
+          <rect x="6" y="6" width="116" height="116" rx="28" fill="url(#cBg)" stroke="rgba(255,255,255,.10)" stroke-width="2"/>
+          <polyline points="18,72 40,72 50,46 62,92 72,58 80,72 110,72"
+            fill="none" stroke="url(#cLine)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="110" cy="72" r="6.5" fill="#8a6bff"/>
+        </svg>
+      </div>
+      <div class="cname"><b>用量脉搏</b><span>PLANPULSE</span></div>
+      <dl class="meta">
+        <dt>项目名（仓库 / package）</dt>
+        <dd>plan-pulse</dd>
+        <dt>程序名（manifest / 商店）</dt>
+        <dd>用量脉搏 — AI Coding 用量监控</dd>
+        <dt>弹窗标题</dt>
+        <dd>用量脉搏（副题：AI Coding 用量监控）</dd>
+      </dl>
+      <ul class="why">
+        <li><b>实时感强</b>：脉搏 = 实时跳动的健康指标，呼应"自动刷新、随时掌握"。</li>
+        <li><b>渐变叙事</b>：绿→蓝→紫渐变线暗合"正常→告警"的多窗口波动（5h/周/月）。</li>
+        <li><b>相对抽象</b>：不直接指向"额度/监控"，需副题补足语义。</li>
+      </ul>
+      <div class="sizes">
+        <div class="s">
+          <svg width="48" height="48" viewBox="0 0 128 128"><use href="#iconC"/></svg><i>48px</i>
+        </div>
+        <div class="s">
+          <svg width="32" height="32" viewBox="0 0 128 128"><use href="#iconC"/></svg><i>32px</i>
+        </div>
+        <div class="s">
+          <svg width="16" height="16" viewBox="0 0 128 128"><use href="#iconC"/></svg><i>16px</i>
+        </div>
+      </div>
+      <div class="toolbar">
+        <span class="tb-dot" style="background:#ff5f57"></span><span class="tb-dot" style="background:#febc2e"></span><span class="tb-dot" style="background:#28c840"></span>
+        <span class="tb-url">chrome://extensions</span>
+        <span class="tb-ext">
+          <svg width="16" height="16" viewBox="0 0 128 128"><use href="#iconC"/></svg>
+          <span class="tb-badge" style="background:#2E7D32">12%</span>
+        </span>
+      </div>
+      <div class="pop-head">
+        <div class="pop-brand">
+          <svg width="34" height="34" viewBox="0 0 128 128"><use href="#iconC"/></svg>
+          <div>
+            <div class="pop-title">用量脉搏</div>
+            <div class="pop-sub">AI Coding 用量监控</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button title="设置" style="width:26px;height:26px;border-radius:7px;border:1px solid var(--line);background:var(--panel-2);color:var(--muted);cursor:pointer">⚙</button>
+          <button title="刷新" style="width:26px;height:26px;border-radius:7px;border:1px solid var(--line);background:var(--panel-2);color:var(--muted);cursor:pointer">⟳</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 复用符号定义（仅 A 使用 use 引用；B/C 已内联，重复一次用于小尺寸渲染） -->
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="aBg2" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#1c2436"/><stop offset="1" stop-color="#10141d"/>
+      </linearGradient>
+      <linearGradient id="aArc2" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#5b77ff"/><stop offset="1" stop-color="#8a6bff"/>
+      </linearGradient>
+      <g id="iconA">
+        <rect x="6" y="6" width="116" height="116" rx="28" fill="url(#aBg2)" stroke="rgba(255,255,255,.10)" stroke-width="2"/>
+        <path d="M 34.56 81 A 34 34 0 1 1 93.44 81" stroke="rgba(255,255,255,.14)" stroke-width="11" fill="none" stroke-linecap="round"/>
+        <path d="M 34.56 81 A 34 34 0 0 1 80.38 34.19" stroke="url(#aArc2)" stroke-width="11" fill="none" stroke-linecap="round"/>
+        <line x1="64" y1="64" x2="73.2" y2="47.3" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="64" cy="64" r="7" fill="#fff"/>
+        <circle cx="64" cy="64" r="2.6" fill="#5b77ff"/>
+      </g>
+      <g id="iconB">
+        <rect x="6" y="6" width="116" height="116" rx="28" fill="#0f1a2e" stroke="rgba(255,255,255,.10)" stroke-width="2"/>
+        <circle cx="64" cy="64" r="40" fill="none" stroke="rgba(79,140,255,.85)" stroke-width="4"/>
+        <circle cx="64" cy="64" r="26" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="4"/>
+        <path d="M 64 64 L 64 24 A 40 40 0 0 1 98.64 44 Z" fill="rgba(79,140,255,.45)"/>
+        <circle cx="80" cy="42" r="6" fill="#2fd57c"/>
+        <circle cx="47" cy="80" r="6" fill="#f5a623"/>
+      </g>
+      <g id="iconC">
+        <rect x="6" y="6" width="116" height="116" rx="28" fill="#141b2e" stroke="rgba(255,255,255,.10)" stroke-width="2"/>
+        <polyline points="18,72 40,72 50,46 62,92 72,58 80,72 110,72"
+          fill="none" stroke="#5b77ff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="110" cy="72" r="6.5" fill="#8a6bff"/>
+      </g>
+    </defs>
+  </svg>
+
+  <div class="notes">
+    <h2>确认后的替换范围（一次完成）</h2>
+    <ul>
+      <li><code>manifest.json</code>：name / description / default_title 换新名，去掉 GLM 字样。</li>
+      <li><code>popup/popup.html + popup.css</code>：头部文字 logo「GLM」改为新图标 SVG；标题、设置页头部同步。</li>
+      <li><code>scripts/gen_icons.py</code>：按选定方案重绘并重新生成 icons/16/32/48/128 PNG。</li>
+      <li><code>README.md / package.json / docs/INSTALL.md / CHANGELOG.md</code>：项目名与标题全量替换；<code>scripts/package.py</code> 的 zip 前缀同步改名。</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>
