@@ -7,6 +7,11 @@
 
 - 暂无排期中的未发布改动。
 
+## [1.3.1] - 2026-09-06
+
+### Changed
+- **扩展名称纯英文化**：manifest `name` 由「AI Coding Gauge — Coding Plan 用量监控」改为「AI Coding Gauge - Coding Plan Usage Monitor」，保持商店展示名全英文；弹窗内界面文案不变（仍为中文）。功能与 1.3.0 完全一致。
+
 ## [1.3.0] - 2026-09-06
 
 ### Added
