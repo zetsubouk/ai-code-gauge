@@ -1,5 +1,6 @@
 // 官方监控接口封装：带鉴权、超时、错误分类、数据解析。
 // 密钥只用于向 open.bigmodel.cn 官方接口鉴权。
+// 注：24h 模型/工具用量封装自 v1.1.0 起随展示一并移除（契约仍记录于 docs/API.md）。
 
 import { ENDPOINTS } from "./constants.js";
 
@@ -71,73 +72,6 @@ export async function fetchQuotaLimit(apiKey) {
     (a, b) => (a.nextResetTime || 0) - (b.nextResetTime || 0)
   );
   return { level: json.data.level || "unknown", limits };
-}
-
-function isoRange(hours = 24) {
-  const end = new Date();
-  const start = new Date(Date.now() - hours * 3600 * 1000);
-  const fmt = (d) => {
-    const p = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-  };
-  return { startTime: fmt(start), endTime: fmt(end) };
-}
-
-/** 24h 模型用量：返回解析后的汇总对象（无数据时为 null）。 */
-export async function fetchModelUsage(apiKey, hours = 24) {
-  const { startTime, endTime } = isoRange(hours);
-  const json = await request(
-    ENDPOINTS.modelUsage,
-    apiKey,
-    `startTime=${encodeURIComponent(startTime)}&endTime=${encodeURIComponent(endTime)}`
-  );
-  if (!json || !json.data) return null;
-  const d = json.data;
-  return {
-    xTime: d.x_time || [],
-    modelCallCount: d.modelCallCount || [],
-    tokensUsage: d.tokensUsage || [],
-    granularity: d.granularity || "hourly",
-    total: {
-      calls: (d.totalUsage && d.totalUsage.totalModelCallCount) ?? 0,
-      tokens: (d.totalUsage && d.totalUsage.totalTokensUsage) ?? 0,
-    },
-    models: (d.totalUsage && d.totalUsage.modelSummaryList) || [],
-  };
-}
-
-/** 24h 工具用量：联网搜索/网页读取/ZRead 次数。 */
-export async function fetchToolUsage(apiKey, hours = 24) {
-  const { startTime, endTime } = isoRange(hours);
-  const json = await request(
-    ENDPOINTS.toolUsage,
-    apiKey,
-    `startTime=${encodeURIComponent(startTime)}&endTime=${encodeURIComponent(endTime)}`
-  );
-  if (!json || !json.data) return null;
-  const d = json.data;
-  const t = (d.totalUsage || {});
-  return {
-    networkSearch: t.totalNetworkSearchCount ?? 0,
-    webRead: t.totalWebReadMcpCount ?? 0,
-    zread: t.totalZreadMcpCount ?? 0,
-    searchMcp: t.totalSearchMcpCount ?? 0,
-    toolDetails: d.toolDataList || [],
-  };
-}
-
-/** 一键拉取全部（配额 + 模型 + 工具）。失败任一不阻断其他。 */
-export async function fetchAll(apiKey, hours = 24) {
-  const [quota, model, tool] = await Promise.allSettled([
-    fetchQuotaLimit(apiKey),
-    fetchModelUsage(apiKey, hours),
-    fetchToolUsage(apiKey, hours),
-  ]);
-  return {
-    quota: quota.status === "fulfilled" ? quota.value : { error: quota.reason },
-    model: model.status === "fulfilled" ? model.value : { error: model.reason },
-    tool: tool.status === "fulfilled" ? tool.value : { error: tool.reason },
-  };
 }
 
 export { ApiError };

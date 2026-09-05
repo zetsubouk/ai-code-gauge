@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>用量监控 · UI 重设计 Demo</title>
+<style>
+/* ===== Demo 页面外壳（非弹窗本体） ===== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  /* 与扩展 popup.css 同源的设计令牌 */
+  --bg: #0c0f15; --panel: #131822; --panel-2: #1a2030;
+  --line: rgba(255,255,255,.07); --text: #e9edf6; --muted: #8a92a4;
+  --accent: #5b77ff; --accent-2: #8a6bff;
+  --ok: #2fd57c; --warn: #f5a623; --bad: #ff5c5c; --track: #222c3c;
+}
+body {
+  font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  background: #0a0d12; color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh; padding: 28px 16px 40px;
+}
+.page { max-width: 920px; margin: 0 auto; }
+.demo-head h1 { font-size: 18px; margin-bottom: 4px; }
+.demo-head p { font-size: 12px; color: var(--muted); }
+.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 16px 0 20px; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.seg button {
+  border: 0; background: var(--panel); color: var(--muted);
+  font-size: 12px; padding: 7px 14px; cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--accent); color: #fff; font-weight: 600; }
+.chk { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.chk input { accent-color: var(--warn); width: 14px; height: 14px; cursor: pointer; }
+.stage {
+  min-height: 380px; border: 1px dashed rgba(255,255,255,.12); border-radius: 16px;
+  display: grid; place-items: start center; padding: 24px 12px;
+}
+
+/* ===== 弹窗本体（与扩展同构，类名保持一致便于落地） =====
+   宽度策略：单栏 360px，双栏 560px（Chrome 弹窗上限 800px） */
+.popup { width: 360px; background: var(--bg); border-radius: 14px; overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0,0,0,.55); transition: width .3s ease; }
+.popup.wide { width: 560px; }
+
+.head { display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 10px; }
+.logo { width: 34px; height: 34px; border-radius: 9px; flex: none;
+  background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.2);
+  display: grid; place-items: center; font-weight: 800; font-size: 12px; letter-spacing: .04em; color: #fff; }
+.brand-title { font-size: 14px; font-weight: 700; }
+.brand .sub { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.plan-badge { padding: 1px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; color: #fff;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+.plan-expiry { font-size: 11px; font-weight: 600; color: var(--muted); }
+.muted { color: var(--muted); font-size: 11px; }
+.head-actions { display: flex; gap: 6px; }
+.icon-btn { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--panel-2); color: var(--muted); font-size: 14px; cursor: pointer; line-height: 1; }
+.icon-btn:hover { color: var(--text); border-color: var(--accent); }
+
+/* 错误提示：左侧红边提示条 */
+.banner { margin: 10px 14px 0; padding: 8px 11px; border-radius: 8px; font-size: 12px;
+  background: rgba(255,92,92,.12); color: var(--bad); border-left: 3px solid var(--bad); }
+
+/* ===== 分栏 ===== */
+.panes { display: grid; gap: 10px; padding: 12px 14px 2px; grid-template-columns: 1fr; }
+.popup.wide .panes { grid-template-columns: 1fr 1fr; }
+.pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px 6px; min-width: 0; }
+.pane-title { font-size: 12px; font-weight: 700; color: var(--muted); margin: 0 0 8px;
+  display: flex; align-items: center; gap: 6px; }
+.pdot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.pdot.glm { background: var(--accent-2); }
+.pdot.go { background: #4f8cff; }
+
+/* ===== 额度卡片：名称+百分比 / 进度条 / 用量行 / 重置行（四段分层） ===== */
+.limits { display: flex; flex-direction: column; gap: 8px; }
+.limit { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px 11px; }
+.limit-top { display: flex; justify-content: space-between; align-items: baseline; }
+.limit-name { font-weight: 600; font-size: 13px; }
+.limit-pct { font-size: 22px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.limit-pct small { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 1px; }
+/* 状态色：百分比数字与进度条联动（正常态保持默认文字色，避免满屏绿色） */
+.limit-pct.warn { color: var(--warn); }
+.limit-pct.bad { color: var(--bad); }
+.limit-track { height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; margin: 9px 0 8px; }
+.limit-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width .35s ease; }
+.limit-fill.warn { background: linear-gradient(90deg, #f5a623, #ff8a2b); }
+.limit-fill.bad { background: linear-gradient(90deg, #ff5c5c, #d32f2f); }
+/* 需求核心：用量一行、重置时间独立一行，不再互相挤压换行 */
+.limit-meta { font-size: 11.5px; color: var(--muted); }
+.limit-meta b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.limit-meta .sep { margin: 0 4px; opacity: .6; }
+.limit-reset { display: flex; align-items: center; gap: 4px; margin-top: 3px;
+  font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.limit-reset .ic { flex: none; opacity: .8; }
+
+/* MCP 明细 */
+.mcp { border-top: 1px dashed var(--line); margin-top: 8px; padding-top: 4px; }
+.mcp-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 5px 2px; }
+.mcp-row .l { color: var(--muted); font-weight: 600; }
+.mcp-row .v { color: var(--muted); font-variant-numeric: tabular-nums; }
+.mcp-row .v b { font-size: 13px; color: var(--text); }
+
+/* 底部状态栏：更新时间 + 自动刷新说明 */
+.foot { display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 16px 11px; font-size: 11px; color: var(--muted); }
+
+.empty { padding: 14px; text-align: center; color: var(--muted); font-size: 12px; }
+
+/* ===== 改动点说明 ===== */
+.notes { margin-top: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
+.notes h2 { font-size: 13px; margin-bottom: 8px; }
+.notes li { font-size: 12px; color: var(--muted); margin: 5px 0 5px 18px; }
+.notes li b { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="demo-head">
+    <h1>用量监控 · UI 重设计 Demo</h1>
+    <p>静态示例数据（取自你的截图）· 实际落地到 Chrome 扩展弹窗，类名与结构保持一致</p>
+  </div>
+
+  <div class="controls">
+    <div class="seg" id="mode-seg">
+      <button data-mode="dual" class="on">双供应商</button>
+      <button data-mode="glm">仅 GLM</button>
+      <button data-mode="go">仅 OpenCode Go</button>
+    </div>
+    <label class="chk"><input type="checkbox" id="warn-preview" /> 预览告警色（黄 80–95% / 红 &gt;95%）</label>
+  </div>
+
+  <div class="stage"><div class="popup" id="popup">
+    <header class="head">
+      <div class="brand">
+        <div class="logo">GLM</div>
+        <div>
+          <div class="brand-title" id="brand-title">GLM Coding Plan</div>
+          <div class="sub">
+            <span id="plan-badge" class="plan-badge">Lite</span>
+            <span id="plan-expiry" class="plan-expiry">到期 2026-12-02</span>
+          </div>
+        </div>
+      </div>
+      <div class="head-actions">
+        <button class="icon-btn" title="设置">⚙</button>
+        <button class="icon-btn" title="刷新">⟳</button>
+      </div>
+    </header>
+
+    <div class="banner" id="banner" hidden></div>
+
+    <div class="panes" id="panes">
+      <section class="pane" id="pane-glm">
+        <div class="pane-title"><i class="pdot glm"></i>智谱 GLM</div>
+        <div class="limits" id="glm-limits"></div>
+      </section>
+      <section class="pane" id="pane-go">
+        <div class="pane-title"><i class="pdot go"></i>OpenCode Go</div>
+        <div class="limits" id="go-limits"></div>
+      </section>
+    </div>
+
+    <footer class="foot">
+      <span>06:01 更新</span>
+      <span>每 10 分钟自动刷新</span>
+    </footer>
+  </div></div>
+
+  <div class="notes">
+    <h2>本版改动点（待确认后落地到扩展）</h2>
+    <li><b>信息分段（需求核心）</b>：原「已用 9 / 剩余 1,990 · 2,000 积分 小时 57 分后重置」拆为两行——第一行只放用量（已用/总额/剩余），第二行只放重置时间（带时钟图标，弱化显示）；Go 栏同步改为「限额 $12」+ 独立重置行。</li>
+    <li><b>双栏自动加宽</b>：单栏 360px、双栏 560px（Chrome 弹窗上限 800px），根治挤压导致的错乱换行。</li>
+    <li><b>卡片化</b>：每条额度窗口独立圆角卡片，替代分隔线列表，扫读边界更清晰。</li>
+    <li><b>状态色联动</b>：百分比数字与进度条同色（≥80% 黄、≥95% 红），正常态保持文字色避免噪声。</li>
+    <li><b>等宽数字</b>：百分比与数值使用 tabular-nums，刷新时数字不跳动。</li>
+    <li><b>供应商色点</b>：GLM 紫 / Go 蓝，双栏时一眼区分。</li>
+    <li><b>底部状态栏</b>：更新时间与自动刷新间隔移至底部 footer，头部只留操作按钮。</li>
+    <li>设置页沿用现有结构，仅随令牌微调（配色/圆角/间距）。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const nf = (n) => Number(n).toLocaleString("zh-CN");
+const stateCls = (p) => (p >= 95 ? "bad" : p >= 80 ? "warn" : "");
+
+// 示例数据：与真实渲染字段一一对应（name/pct/used/total/remain/reset）
+const DATA = {
+  glm: [
+    { name: "5 小时", pct: 1, meta: `已用 <b>9</b> / ${nf(2000)} 积分<span class="sep">·</span>剩余 <b>${nf(1990)}</b>`, reset: "1 小时 57 分后重置" },
+    { name: "本周", pct: 15, meta: `已用 <b>${nf(1525)}</b> / ${nf(10000)} 积分<span class="sep">·</span>剩余 <b>${nf(8474)}</b>`, reset: "7 小时后重置" },
+  ],
+  go: [
+    { name: "5 小时", pct: 0, meta: `限额 <b>$12</b>`, reset: "4 小时 59 分后重置" },
+    { name: "每周", pct: 46, meta: `限额 <b>$30</b>`, reset: "1 天 1 小时后重置" },
+    { name: "每月", pct: 46, meta: `限额 <b>$60</b>`, reset: "11 天 6 小时后重置" },
+  ],
+};
+// 告警色预览：把百分比替换为黄/红阈值示例
+const WARN_DATA = {
+  glm: [
+    { name: "5 小时", pct: 86, meta: `已用 <b>${nf(10320)}</b> / ${nf(12000)} 积分<span class="sep">·</span>剩余 <b>${nf(1680)}</b>`, reset: "1 小时 57 分后重置" },
+    { name: "本周", pct: 97, meta: `已用 <b>${nf(58200)}</b> / ${nf(60000)} 积分<span class="sep">·</span>剩余 <b>${nf(1800)}</b>`, reset: "7 小时后重置" },
+  ],
+  go: [
+    { name: "5 小时", pct: 83, meta: `限额 <b>$12</b>`, reset: "4 小时 59 分后重置" },
+    { name: "每周", pct: 92, meta: `限额 <b>$30</b>`, reset: "1 天 1 小时后重置" },
+    { name: "每月", pct: 97, meta: `限额 <b>$60</b>`, reset: "11 天 6 小时后重置" },
+  ],
+};
+
+const CLOCK_SVG = `<svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
+
+function limitCard(w) {
+  const cls = stateCls(w.pct);
+  return `<div class="limit">
+    <div class="limit-top">
+      <span class="limit-name">${w.name}</span>
+      <span class="limit-pct ${cls}">${Math.round(w.pct)}<small>%</small></span>
+    </div>
+    <div class="limit-track"><div class="limit-fill ${cls}" style="width:${Math.max(0, Math.min(100, w.pct))}%"></div></div>
+    <div class="limit-meta">${w.meta}</div>
+    <div class="limit-reset">${CLOCK_SVG}<span>${w.reset}</span></div>
+  </div>`;
+}
+
+let mode = "dual", warnOn = false;
+const popup = document.getElementById("popup");
+
+function render() {
+  const glm = mode !== "go" ? (warnOn ? WARN_DATA.glm : DATA.glm) : null;
+  const go = mode !== "glm" ? (warnOn ? WARN_DATA.go : DATA.go) : null;
+  document.getElementById("glm-limits").innerHTML = glm ? glm.map(limitCard).join("") : "";
+  document.getElementById("go-limits").innerHTML = go ? go.map(limitCard).join("") : "";
+  document.getElementById("pane-glm").hidden = !glm;
+  document.getElementById("pane-go").hidden = !go;
+  popup.classList.toggle("wide", mode === "dual");
+
+  // 头部跟随供应商切换（仅 Go 时标题换为 OpenCode Go，与现有逻辑一致）
+  const onlyGo = mode === "go";
+  document.getElementById("brand-title").textContent = onlyGo ? "OpenCode Go" : "GLM Coding Plan";
+  document.getElementById("plan-badge").textContent = onlyGo ? "Go" : "Lite";
+  document.getElementById("plan-expiry").textContent = onlyGo ? "" : "到期 2026-12-02";
+
+  // 告警色预览时顺带展示错误条样式
+  document.getElementById("banner").hidden = !warnOn;
+  if (warnOn) document.getElementById("banner").textContent = "示例：OpenCode Go 用量查询失败（错误条新样式，左侧红边）";
+}
+
+document.getElementById("mode-seg").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-mode]");
+  if (!btn) return;
+  mode = btn.dataset.mode;
+  document.querySelectorAll("#mode-seg button").forEach((b) => b.classList.toggle("on", b === btn));
+  render();
+});
+document.getElementById("warn-preview").addEventListener("change", (e) => { warnOn = e.target.checked; render(); });
+
+render();
+</script>
+</body>
+</html>

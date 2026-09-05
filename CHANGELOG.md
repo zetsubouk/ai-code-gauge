@@ -5,7 +5,14 @@
 
 ## [Unreleased]
 
-- 暂无排期中的未发布改动。
+### Changed
+- 统一图标循环切换间隔口径：后台钳制范围改为 5–60 秒，与设置下拉框、README 一致。
+
+### Fixed
+- 文档纠偏：INSTALL.md 移除过时本机路径与 24h 用量描述、修正「GMM」拼写并补充 OpenCode Go 配置步骤；manifest.json 描述移除已下线的 24h 用量字样；README 配置章节与结构树对齐多供应商现状。
+
+### Removed
+- 清理死代码：移除 v1.1.0 起不再调用的 24h 模型/工具用量封装（fetchModelUsage / fetchToolUsage / fetchAll / isoRange）与对应端点常量；冒烟测试脚本同步改为仅校验额度接口。
 
 ## [1.1.0] - 2026-09-03
 

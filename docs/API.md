@@ -51,6 +51,8 @@ Header: Authorization: <apiKey>
 
 ### 2. 24 小时模型用量
 
+> 注：自 v1.1.0 起扩展不再调用以下两个 24h 接口（面板展示已移除），保留本节仅作官方接口契约的审计参考。
+
 ```
 GET https://open.bigmodel.cn/api/monitor/usage/model-usage
      ?startTime=yyyy-MM-dd HH:mm:ss & endTime=yyyy-MM-dd HH:mm:ss

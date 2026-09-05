@@ -2,10 +2,9 @@
 
 export const HOST = "https://open.bigmodel.cn";
 
+// 仅保留扩展实际调用的端点；24h 模型/工具用量端点自 v1.1.0 起不再调用（契约仍记录于 docs/API.md）
 export const ENDPOINTS = {
   quotaLimit: `${HOST}/api/monitor/usage/quota/limit`,
-  modelUsage: `${HOST}/api/monitor/usage/model-usage`,
-  toolUsage: `${HOST}/api/monitor/usage/tool-usage`,
 };
 
 // 套餐等级 -> 显示名

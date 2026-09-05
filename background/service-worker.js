@@ -30,7 +30,8 @@ async function getSettings() {
   }
   const glm = { enabled: true, apiKey: "", planExpiry: "", ...(providers.glm || {}) };
   const go = { enabled: false, apiKey: "", ...(providers.go || {}) };
-  const badgeCycleSec = Math.max(1, Math.min(300, Number(got.badgeCycleSec) || DEFAULTS.badgeCycleSec));
+  // 与设置下拉框、README 口径一致：仅接受 5–60 秒
+  const badgeCycleSec = Math.max(5, Math.min(60, Number(got.badgeCycleSec) || DEFAULTS.badgeCycleSec));
   return { refreshMin: Number(got.refreshMin) || DEFAULTS.refreshMin, badgeCycleSec, providers: { glm, go } };
 }
 

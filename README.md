@@ -68,12 +68,14 @@
 
 点扩展图标 → ⚙ 设置：
 
-1. **API Key**：到 [bigmodel.cn](https://open.bigmodel.cn/) 后台「API Keys」复制（与你在 Claude Code / ZCode 等工具中配置的密钥一致）。
-2. **套餐到期日期**（选填）：填写你的订阅到期日，将显示在套餐等级后，临近到期会有颜色提醒。
-3. **自动刷新间隔**：1–30 分钟。
-4. 保存后面板自动查询并展示。
+1. **GLM API Key**：到 [bigmodel.cn](https://open.bigmodel.cn/) 后台「API Keys」复制（与你在 Claude Code / ZCode 等工具中配置的密钥一致）。
+2. **OpenCode Go API Key**（可选）：勾选 OpenCode Go 并填入 opencode.ai 的 API Key。
+3. **套餐到期日期**（选填，GLM）：填写你的订阅到期日，将显示在套餐等级后，临近到期会有颜色提醒。
+4. **自动刷新间隔**：1–30 分钟。
+5. **图标循环切换间隔**（双供应商时）：5–60 秒。
+6. 保存后面板自动查询并展示。
 
-密钥只存本机 `chrome.storage.local`，仅发送给 `open.bigmodel.cn` 官方监控接口。
+密钥只存本机 `chrome.storage.local`，仅发送给对应供应商官方监控接口。
 
 ## 隐私与安全
 
@@ -93,7 +95,7 @@ GLM Coding Plan 用量监控/
 ├── manifest.json              # MV3 配置
 ├── background/service-worker.js # 定时刷新、徽章、缓存
 ├── popup/                     # 弹窗 UI（html/css/js）
-├── shared/                    # api.js / constants.js / format.js
+├── shared/                    # api.js / constants.js / go.js / format.js
 ├── icons/                     # 扩展图标（16/32/48/128）
 ├── docs/                      # API.md 接口契约 / INSTALL.md 安装指南
 ├── scripts/                   # 图标生成 / 打包 / 接口冒烟测试
