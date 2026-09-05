@@ -65,8 +65,8 @@
 
   <section id="setup" class="setup" hidden>
     <div class="setup-head">
-      <svg class="logo-svg" viewBox="0 0 128 128"><use href="#gauge-logo" /></svg>
-      <div class="setup-title"><h1>AI 码表</h1><p>Coding Plan 用量监控 · 配置供应商</p></div>
+      <svg class="logo-svg lg" viewBox="0 0 128 128"><use href="#gauge-logo" /></svg>
+      <div class="setup-title"><h1>AI Coding Gauge</h1><p>Coding Plan 用量监控 · 配置供应商</p></div>
     </div>
     <div class="setup-body">
       <div class="prov-block">
@@ -92,32 +92,31 @@
   </section>
 
   <section id="panel" class="panel">
+    <div class="brandbar"></div>
     <header class="head">
       <div class="brand">
-        <svg class="logo-svg small" viewBox="0 0 128 128"><use href="#gauge-logo" /></svg>
-        <div>
-          <div class="brand-title" id="brand-title">AI 码表</div>
-          <div class="sub">
-            <span id="plan-badge" class="plan-badge"></span>
-            <span id="plan-expiry" class="plan-expiry"></span>
-          </div>
-        </div>
+        <svg class="logo-svg" viewBox="0 0 128 128"><use href="#gauge-logo" /></svg>
+        <div class="brand-title" id="brand-title">AI Coding Gauge<span class="zh">用量监控</span></div>
       </div>
       <div class="head-actions">
-        <button id="btn-settings" class="icon-btn">⚙</button>
-        <button id="btn-refresh" class="icon-btn">⟳</button>
+        <button id="btn-settings" class="icon-btn" title="设置">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <button id="btn-refresh" class="icon-btn" title="刷新">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        </button>
       </div>
     </header>
     <div id="status-bar" class="status" hidden></div>
     <div id="plan-err" class="plan-err" hidden></div>
     <div id="panes" class="panes">
       <section id="pane-glm" class="pane">
-        <div class="pane-title"><i class="pdot glm"></i>智谱 GLM</div>
+        <div class="pane-title"><i class="pdot glm"></i>智谱 GLM<span id="plan-badge" class="plan-badge"></span><span id="plan-expiry" class="plan-expiry"></span></div>
         <div id="limits" class="limits"></div>
         <div id="mcp-wrap" class="mcp"></div>
       </section>
       <section id="pane-go" class="pane">
-        <div class="pane-title"><i class="pdot go"></i>OpenCode Go</div>
+        <div class="pane-title"><i class="pdot go"></i>OpenCode Go<span id="go-expiry" class="plan-expiry"></span></div>
         <div id="go-limits" class="limits"></div>
       </section>
     </div>

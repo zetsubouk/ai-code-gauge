@@ -1,7 +1,7 @@
 // 弹窗逻辑：渲染多供应商用量（GLM 智谱大陆 / OpenCode Go），额度卡片分段展示（用量一行、重置时间独立一行）；
 // 每次打开强刷；错误显式暴露。
 
-import { nf, fmtTime, fmtRemain, pctColor, daysLeft } from "../shared/format.js";
+import { nf, fmtTime, fmtRemain, pctColor, daysLeft, fmtDate } from "../shared/format.js";
 import { LEVEL_NAMES } from "../shared/constants.js";
 
 const $ = (id) => document.getElementById(id);
@@ -11,8 +11,7 @@ const els = {
   glmOn: $("f-glm-on"), glmKey: $("f-glm-key"), glmExpiry: $("f-glm-expiry"),
   goOn: $("f-go-on"), goKey: $("f-go-key"),
   fRefresh: $("f-refresh"), fCycle: $("f-cycle"), btnSave: $("btn-save"), setupMsg: $("setup-msg"),
-  brandTitle: $("brand-title"),
-  planBadge: $("plan-badge"), planExpiry: $("plan-expiry"), lastUpdated: $("last-updated"),
+  planBadge: $("plan-badge"), planExpiry: $("plan-expiry"), goExpiry: $("go-expiry"), lastUpdated: $("last-updated"),
   statusBar: $("status-bar"), planErr: $("plan-err"),
   panes: $("panes"), paneGlm: $("pane-glm"), paneGo: $("pane-go"),
   limits: $("limits"), mcp: $("mcp-wrap"), goLimits: $("go-limits"),
@@ -122,14 +121,11 @@ function render(payload) {
   const glmShown = !!(glm && !(glm.error && !glm.limits));
   const goShown = !!(go && !go.error);
 
-  // 头部：标题固定为品牌名；徽章随主供应商（GLM 套餐等级 / 仅 Go 时显示 Go）
-  els.brandTitle.textContent = "AI 码表";
+  // 头部品牌名静态维护于 HTML；徽章/到期随 GLM 面板标题行展示
   let badge = "";
   if (glmShown && glm) {
     const levelName = (glm.levelName || LEVEL_NAMES[glm.level]) || "";
     if (levelName && levelName !== "unknown") badge = levelName;
-  } else if (goShown) {
-    badge = "Go";
   }
   els.planBadge.textContent = badge;
   els.planExpiry.textContent = "";
@@ -139,6 +135,19 @@ function render(payload) {
     const dl = daysLeft(glm.planExpiry);
     if (dl !== null && dl < 0) { els.planExpiry.classList.add("bad"); els.planExpiry.textContent += "（已到期）"; }
     else if (dl !== null && dl <= 7) { els.planExpiry.classList.add("warn"); els.planExpiry.textContent += `（剩 ${dl} 天）`; }
+  }
+  // Go 到期：由「每月」窗口重置时间（endTs）推算当月套餐截止日，本地时区取日历日
+  els.goExpiry.textContent = "";
+  els.goExpiry.className = "plan-expiry";
+  if (goShown && go && Array.isArray(go.windows)) {
+    const monthly = go.windows.find((w) => w.key === "monthly");
+    if (monthly && monthly.endTs) {
+      const dateStr = fmtDate(monthly.endTs);
+      els.goExpiry.textContent = `到期 ${dateStr}`;
+      const dl = daysLeft(dateStr);
+      if (dl !== null && dl < 0) { els.goExpiry.classList.add("bad"); els.goExpiry.textContent += "（已到期）"; }
+      else if (dl !== null && dl <= 7) { els.goExpiry.classList.add("warn"); els.goExpiry.textContent += `（剩 ${dl} 天）`; }
+    }
   }
   els.lastUpdated.textContent = payload.fetchedAt ? fmtTime(payload.fetchedAt) + " 更新" : "";
 
@@ -193,9 +202,9 @@ function render(payload) {
 
 /* ---------- 动作 ---------- */
 function setRefreshBusy(b) {
+  // 按钮内容为 SVG 图标，旋转动画作用于按钮本身，结束后自动还原
   els.btnRefresh.disabled = b;
-  if (b) els.btnRefresh.classList.add("spin");
-  else { els.btnRefresh.classList.remove("spin"); els.btnRefresh.textContent = "⟳"; }
+  els.btnRefresh.classList.toggle("spin", b);
 }
 
 async function doRefresh() {

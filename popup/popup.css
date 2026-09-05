@@ -1,9 +1,10 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
+  /* v2：panel/panel-2/track 微调亮度，拉开面板与卡片的层次 */
   --bg: #0c0f15;
-  --panel: #131822;
-  --panel-2: #1a2030;
+  --panel: #151b28;
+  --panel-2: #1c2334;
   --line: rgba(255,255,255,.07);
   --text: #e9edf6;
   --muted: #8a92a4;
@@ -12,7 +13,7 @@
   --ok: #2fd57c;
   --warn: #f5a623;
   --bad: #ff5c5c;
-  --track: #222c3c;
+  --track: #232d40;
 }
 
 body {
@@ -28,8 +29,8 @@ body {
 body.wide { width: 560px; }
 
 /* ============ 品牌 logo（仪表盘 SVG） ============ */
-.logo-svg { width: 44px; height: 44px; flex: none; display: block; }
-.logo-svg.small { width: 34px; height: 34px; }
+.logo-svg { width: 36px; height: 36px; flex: none; display: block; }
+.logo-svg.lg { width: 44px; height: 44px; }
 
 /* ============ 设置页 ============ */
 .setup-head {
@@ -37,7 +38,7 @@ body.wide { width: 560px; }
   padding: 16px 18px;
   background: linear-gradient(135deg, #26337f 0%, #3a35a8 50%, #5b3fc6 100%);
 }
-.setup-title h1 { font-size: 16px; color: #fff; }
+.setup-title h1 { font-size: 16px; color: #fff; letter-spacing: .01em; }
 .setup-title p { font-size: 12px; color: rgba(255,255,255,.78); margin-top: 2px; }
 .setup-body { padding: 16px 18px 14px; background: var(--panel); }
 .field { display: block; margin-bottom: 12px; }
@@ -62,33 +63,31 @@ button.primary:hover { filter: brightness(1.08); }
 .privacy { margin-top: 12px; font-size: 11px; color: var(--muted); text-align: center; }
 
 /* ============ 主面板头部 ============ */
+/* v2：顶部品牌渐变条作为唯一品牌装饰，替代原渐变头部 */
+.brandbar { height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
 .head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px;
+  padding: 11px 14px 11px 16px;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
 }
 .brand { display: flex; align-items: center; gap: 10px; }
-.brand-title { font-size: 14px; font-weight: 700; }
-.brand .sub { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
-.plan-badge {
-  padding: 1px 8px; border-radius: 999px;
-  font-size: 10px; font-weight: 700; color: #fff;
-  background: linear-gradient(90deg, var(--accent), var(--accent-2));
-}
-.plan-expiry { font-size: 11px; font-weight: 600; color: var(--muted); }
-.plan-expiry.warn { color: var(--warn); }
-.plan-expiry.bad { color: var(--bad); }
+/* v2：订阅徽章/到期移入面板标题行后，头部收敛为单行品牌区 */
+.brand-title { font-size: 15px; font-weight: 700; letter-spacing: .01em; }
+.brand-title .zh { font-size: 11px; font-weight: 500; color: var(--muted); margin-left: 7px; }
 .muted { color: var(--muted); font-size: 11px; }
 .head-actions { display: flex; gap: 6px; }
 .icon-btn {
-  width: 28px; height: 28px; border-radius: 8px;
+  width: 30px; height: 30px; border-radius: 8px;
   border: 1px solid var(--line); background: var(--panel-2);
-  color: var(--muted); font-size: 14px; cursor: pointer; line-height: 1;
+  color: var(--muted); cursor: pointer; line-height: 1;
+  display: grid; place-items: center;
+  transition: color .15s, border-color .15s;
 }
 .icon-btn:hover { color: var(--text); border-color: var(--accent); }
 .icon-btn:disabled { opacity: .5; cursor: default; }
 .icon-btn.spin { animation: spin 1s linear infinite; }
+.icon-btn svg { display: block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* 错误提示：左侧色边提示条 */
@@ -103,21 +102,39 @@ button.primary:hover { filter: brightness(1.08); }
 /* ============ 分栏面板 ============ */
 .panes { display: grid; gap: 10px; padding: 12px 14px 2px; grid-template-columns: 1fr; }
 body.wide .panes { grid-template-columns: 1fr 1fr; }
-.pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px 8px; min-width: 0; }
-.pane-title { font-size: 12px; font-weight: 700; color: var(--muted); margin: 0 0 8px; display: flex; align-items: center; gap: 6px; }
+.pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px 9px; min-width: 0; }
+/* 面板标题行：供应商名 + 订阅徽章 + 到期日期（订阅信息随所属面板，跨栏不串位） */
+.pane-title {
+  font-size: 12.5px; font-weight: 700; color: var(--text);
+  margin: 0 0 9px; display: flex; align-items: center; gap: 7px; min-width: 0;
+}
 .pdot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 .pdot.glm { background: var(--accent-2); }
 .pdot.go { background: #4f8cff; }
+.plan-badge {
+  padding: 1px 8px; border-radius: 999px; flex: none;
+  font-size: 10px; font-weight: 700; color: #fff;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+.plan-expiry {
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  flex: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.plan-expiry.warn { color: var(--warn); }
+.plan-expiry.bad { color: var(--bad); }
+/* 无数据时不留空胶囊/空占位 */
+.plan-badge:empty, .plan-expiry:empty { display: none; }
 
 /* ============ 额度卡片：名称+百分比 / 进度条 / 用量行 / 重置行 ============ */
 .limits { display: flex; flex-direction: column; gap: 8px; padding: 0; }
 .limit {
   background: var(--panel-2); border: 1px solid var(--line);
-  border-radius: 10px; padding: 10px 12px 11px; min-width: 0;
+  border-radius: 10px; padding: 11px 13px 12px; min-width: 0;
 }
 .limit-top { display: flex; justify-content: space-between; align-items: baseline; }
 .limit-name { font-weight: 600; font-size: 13px; }
-.limit-pct { font-size: 22px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+/* 百分比是卡片第一视觉焦点，v2 加大一号；tabular-nums 保证扫读稳定 */
+.limit-pct { font-size: 24px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
 .limit-pct small { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 1px; }
 /* 状态色联动：百分比数字与进度条同色，正常态保持默认文字色避免噪声 */
 .limit-pct.warn { color: var(--warn); }
@@ -139,13 +156,13 @@ body.wide .panes { grid-template-columns: 1fr 1fr; }
 .limit-meta b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
 .limit-meta .sep { margin: 0 4px; opacity: .6; }
 .limit-reset {
-  display: flex; align-items: center; gap: 4px; margin-top: 3px;
+  display: flex; align-items: center; gap: 4px; margin-top: 4px;
   font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums;
 }
 .limit-reset .ic { flex: none; opacity: .8; }
 
 /* MCP 明细（若有） */
-.mcp { border-top: 1px dashed var(--line); margin-top: 8px; padding: 6px 2px 2px; }
+.mcp { border-top: 1px dashed var(--line); margin-top: 9px; padding: 6px 2px 2px; }
 .mcp:empty { display: none; }
 .mcp-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 5px 0; }
 .mcp-row .l { color: var(--muted); font-weight: 600; }
@@ -155,15 +172,19 @@ body.wide .panes { grid-template-columns: 1fr 1fr; }
 .empty { padding: 14px; text-align: center; color: var(--muted); font-size: 12px; }
 
 /* ============ 底部状态栏 ============ */
+/* v2：细线分隔与头部呼应，长内容时边界更清楚 */
 .foot {
   display: flex; justify-content: space-between; align-items: center;
   padding: 9px 16px 11px;
+  border-top: 1px solid var(--line);
+  margin-top: 12px;
+  background: rgba(255,255,255,.015);
 }
 
 /* ============ 设置：供应商复选 ============ */
 .prov-block {
   border: 1px solid var(--line); border-radius: 10px;
-  padding: 10px 12px; margin-bottom: 12px; background: var(--panel);
+  padding: 10px 12px; margin-bottom: 12px; background: var(--panel-2);
 }
 .prov-head { display: flex; align-items: center; gap: 9px; cursor: pointer; }
 .prov-head input[type="checkbox"] {
