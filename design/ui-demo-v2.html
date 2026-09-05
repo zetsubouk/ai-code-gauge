@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Coding Gauge · UI v2 Demo</title>
+<style>
+/* ===== Demo 页面外壳（非弹窗本体） ===== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  /* 与扩展 popup.css 同源的设计令牌（v2 微调层次） */
+  --bg: #0c0f15; --panel: #151b28; --panel-2: #1c2334;
+  --line: rgba(255,255,255,.07); --text: #e9edf6; --muted: #8a92a4;
+  --accent: #5b77ff; --accent-2: #8a6bff;
+  --ok: #2fd57c; --warn: #f5a623; --bad: #ff5c5c; --track: #232d40;
+}
+body {
+  font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  background: #0a0d12; color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh; padding: 28px 16px 40px;
+}
+.page { max-width: 920px; margin: 0 auto; }
+.demo-head h1 { font-size: 18px; margin-bottom: 4px; }
+.demo-head p { font-size: 12px; color: var(--muted); }
+.controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 16px 0 20px; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.seg button {
+  border: 0; background: var(--panel); color: var(--muted);
+  font-size: 12px; padding: 7px 14px; cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--accent); color: #fff; font-weight: 600; }
+.chk { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.chk input { accent-color: var(--warn); width: 14px; height: 14px; cursor: pointer; }
+.stage {
+  min-height: 420px; border: 1px dashed rgba(255,255,255,.12); border-radius: 16px;
+  display: grid; place-items: start center; padding: 24px 12px;
+}
+
+/* ===== 弹窗本体 v2（类名与扩展一致，确认后可直接落地） ===== */
+.popup { width: 360px; background: var(--bg); border-radius: 14px; overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0,0,0,.55); transition: width .3s ease; }
+.popup.wide { width: 560px; }
+
+/* 头部：品牌渐变条 + 单行品牌区（订阅信息移入面板标题行后，头部不再有第二行） */
+.brandbar { height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+.head { display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 14px 11px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-title { font-size: 15px; font-weight: 700; letter-spacing: .01em; }
+.brand-title .zh { font-size: 11px; font-weight: 500; color: var(--muted); margin-left: 7px; }
+.muted { color: var(--muted); font-size: 11px; }
+.head-actions { display: flex; gap: 6px; }
+.icon-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--panel-2); color: var(--muted); cursor: pointer; line-height: 1;
+  display: grid; place-items: center; transition: color .15s, border-color .15s; }
+.icon-btn:hover { color: var(--text); border-color: var(--accent); }
+.icon-btn svg { display: block; }
+
+/* 状态/错误提示条：左侧色条 */
+.status, .plan-err {
+  margin: 10px 14px 0; padding: 8px 11px; border-radius: 8px;
+  font-size: 12px;
+  background: rgba(255,92,92,.12); color: var(--bad); border-left: 3px solid var(--bad);
+}
+.status { background: rgba(245,166,35,.10); color: var(--warn); border-left-color: var(--warn); }
+.status.bad { background: rgba(255,92,92,.12); color: var(--bad); border-left-color: var(--bad); }
+
+/* ===== 分栏面板 ===== */
+.panes { display: grid; gap: 10px; padding: 12px 14px 2px; grid-template-columns: 1fr; }
+.popup.wide .panes { grid-template-columns: 1fr 1fr; }
+.pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px 9px; min-width: 0; }
+/* 面板标题行：供应商名 + 订阅徽章 + 到期日期（本次调整核心） */
+.pane-title { font-size: 12.5px; font-weight: 700; color: var(--text);
+  margin: 0 0 9px; display: flex; align-items: center; gap: 7px; min-width: 0; }
+.pdot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.pdot.glm { background: var(--accent-2); }
+.pdot.go { background: #4f8cff; }
+.plan-badge { padding: 1px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; color: #fff;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2)); flex: none; }
+.plan-expiry { font-size: 11px; font-weight: 600; color: var(--muted);
+  flex: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plan-expiry.warn { color: var(--warn); }
+.plan-expiry.bad { color: var(--bad); }
+
+/* ===== 额度卡片 ===== */
+.limits { display: flex; flex-direction: column; gap: 8px; }
+.limit { background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 10px; padding: 11px 13px 12px; min-width: 0; }
+.limit-top { display: flex; justify-content: space-between; align-items: baseline; }
+.limit-name { font-weight: 600; font-size: 13px; }
+.limit-pct { font-size: 24px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.limit-pct small { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 1px; }
+.limit-pct.warn { color: var(--warn); }
+.limit-pct.bad { color: var(--bad); }
+.limit-track { height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; margin: 9px 0 8px; }
+.limit-fill { height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .35s ease; }
+.limit-fill.warn { background: linear-gradient(90deg, #f5a623, #ff8a2b); }
+.limit-fill.bad { background: linear-gradient(90deg, #ff5c5c, #d32f2f); }
+.limit-meta { font-size: 11.5px; color: var(--muted); }
+.limit-meta b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.limit-meta .sep { margin: 0 4px; opacity: .6; }
+.limit-reset { display: flex; align-items: center; gap: 4px; margin-top: 4px;
+  font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* MCP 明细 */
+.mcp { border-top: 1px dashed var(--line); margin-top: 9px; padding: 6px 2px 2px; }
+.mcp:empty { display: none; }
+.mcp-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 5px 0; }
+.mcp-row .l { color: var(--muted); font-weight: 600; }
+.mcp-row .v { color: var(--muted); font-variant-numeric: tabular-nums; }
+.mcp-row .v b { font-size: 13px; color: var(--text); }
+
+.empty { padding: 14px; text-align: center; color: var(--muted); font-size: 12px; }
+
+/* 底部 */
+.foot { display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 16px 11px; border-top: 1px solid var(--line); margin-top: 12px;
+  background: rgba(255,255,255,.015); }
+
+/* ===== 设置页 ===== */
+.setup-head { display: flex; gap: 12px; align-items: center; padding: 16px 18px;
+  background: linear-gradient(135deg, #26337f 0%, #3a35a8 50%, #5b3fc6 100%); }
+.setup-title h1 { font-size: 16px; color: #fff; letter-spacing: .01em; }
+.setup-title p { font-size: 12px; color: rgba(255,255,255,.78); margin-top: 2px; }
+.setup-body { padding: 16px 18px 14px; background: var(--panel); }
+.field { display: block; margin-bottom: 12px; }
+.field > span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+.field input[type="password"], .field select {
+  width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px;
+  font-size: 13px; color: var(--text); background: var(--panel-2); }
+.field input:focus, .field select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,119,255,.18); }
+button.primary { width: 100%; padding: 10px; border: 0; border-radius: 8px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+button.primary:hover { filter: brightness(1.08); }
+.privacy { margin-top: 12px; font-size: 11px; color: var(--muted); text-align: center; }
+.prov-block { border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; margin-bottom: 12px; background: var(--panel-2); }
+.prov-head { display: flex; align-items: center; gap: 9px; cursor: pointer; }
+.prov-head input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+.prov-name { font-size: 13px; color: var(--text); }
+.prov-fields { margin-top: 10px; }
+.prov-fields[hidden] { display: none; }
+
+.logo-svg { width: 36px; height: 36px; flex: none; display: block; }
+.logo-svg.lg { width: 44px; height: 44px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="demo-head">
+    <h1>AI Coding Gauge · UI v2 Demo</h1>
+    <p>品牌名英文化 + 订阅信息移入面板标题行 + 整体打磨 + Go 当月到期推算。数据为静态模拟，确认后落地到扩展。</p>
+    <p>Go 到期口径：取「每月」窗口的重置时间（endTs）所在日历日，即当月套餐周期截止日；≤7 天变黄、已过变红，与 GLM 到期联动规则一致。</p>
+  </div>
+  <div class="controls">
+    <div class="seg" id="views">
+      <button data-v="both" class="on">双供应商</button>
+      <button data-v="glm">仅 GLM</button>
+      <button data-v="go">仅 OpenCode Go</button>
+      <button data-v="setup">设置页</button>
+    </div>
+    <label class="chk"><input type="checkbox" id="warn-mode" /> 预警态示例（≥80% 黄 / ≥95% 红）</label>
+  </div>
+  <div class="stage">
+
+    <!-- 品牌符号定义（与扩展 popup.html 同源） -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs>
+        <linearGradient id="lg-bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#1c2436" /><stop offset="1" stop-color="#10141d" />
+        </linearGradient>
+        <linearGradient id="lg-arc" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#5b77ff" /><stop offset="1" stop-color="#8a6bff" />
+        </linearGradient>
+        <g id="gauge-logo">
+          <rect x="6" y="6" width="116" height="116" rx="28" fill="url(#lg-bg)" stroke="rgba(255,255,255,.1)" stroke-width="2" />
+          <path d="M 34.56 81 A 34 34 0 1 1 93.44 81" stroke="rgba(255,255,255,.14)" stroke-width="11" fill="none" stroke-linecap="round" />
+          <path d="M 34.56 81 A 34 34 0 0 1 80.38 34.19" stroke="url(#lg-arc)" stroke-width="11" fill="none" stroke-linecap="round" />
+          <line x1="64" y1="64" x2="73.2" y2="47.3" stroke="#fff" stroke-width="6" stroke-linecap="round" />
+          <circle cx="64" cy="64" r="7" fill="#fff" />
+          <circle cx="64" cy="64" r="2.6" fill="#5b77ff" />
+        </g>
+      </defs>
+    </svg>
+
+    <!-- ===================== 主面板 ===================== -->
+    <div class="popup" id="popup">
+      <div class="brandbar"></div>
+      <header class="head">
+        <div class="brand">
+          <svg class="logo-svg" viewBox="0 0 128 128"><use href="#gauge-logo" /></svg>
+          <!-- 品牌名英文化：主标题英文 + 小号中文辅助，兼顾辨识度 -->
+          <div class="brand-title">AI Coding Gauge<span class="zh">用量监控</span></div>
+        </div>
+        <div class="head-actions">
+          <button class="icon-btn" title="设置">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+          <button class="icon-btn" title="刷新">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <div id="panes" class="panes">
+        <!-- GLM 栏：订阅徽章与到期日期移到标题行后方 -->
+        <section class="pane" id="pane-glm">
+          <div class="pane-title">
+            <i class="pdot glm"></i>智谱 GLM
+            <span class="plan-badge" id="plan-badge">Lite</span>
+            <span class="plan-expiry" id="plan-expiry">到期 2026-12-02</span>
+          </div>
+          <div class="limits" id="limits"></div>
+          <div class="mcp" id="mcp"></div>
+        </section>
+        <section class="pane" id="pane-go">
+          <div class="pane-title"><i class="pdot go"></i>OpenCode Go<span class="plan-expiry" id="go-expiry"></span></div>
+          <div class="limits" id="go-limits"></div>
+        </section>
+      </div>
+
+      <footer class="foot">
+        <span class="muted">07:06 更新</span>
+        <span class="muted">每 10 分钟自动刷新</span>
+      </footer>
+    </div>
+
+    <!-- ===================== 设置页 ===================== -->
+    <div class="popup" id="setup-view" hidden>
+      <section>
+        <div class="setup-head">
+          <svg class="logo-svg lg" viewBox="0 0 128 128"><use href="#gauge-logo" /></svg>
+          <div class="setup-title">
+            <h1>AI Coding Gauge</h1>
+            <p>Coding Plan 用量监控 · 配置供应商</p>
+          </div>
+        </div>
+        <div class="setup-body">
+          <div class="prov-block">
+            <label class="prov-head">
+              <input type="checkbox" checked />
+              <span class="prov-name"><b>GLM</b>（智谱中国大陆版 · bigmodel.cn）</span>
+            </label>
+            <div class="prov-fields">
+              <label class="field"><span>API Key</span><input type="password" placeholder="粘贴智谱 API Key" value="••••••••••••••••" /></label>
+              <label class="field"><span>套餐到期日期（选填）</span><input type="date" value="2026-12-02" /></label>
+            </div>
+          </div>
+          <div class="prov-block">
+            <label class="prov-head">
+              <input type="checkbox" checked />
+              <span class="prov-name"><b>OpenCode Go</b>（opencode.ai）</span>
+            </label>
+            <div class="prov-fields">
+              <label class="field"><span>API Key</span><input type="password" placeholder="粘贴 OpenCode Go API Key" value="••••••••••••••••" /></label>
+            </div>
+          </div>
+          <label class="field"><span>自动刷新间隔</span>
+            <select><option>10 分钟</option></select>
+          </label>
+          <label class="field"><span>图标百分比循环切换间隔（双供应商时）</span>
+            <select><option>10 秒</option></select>
+          </label>
+          <button class="primary">保存并查询</button>
+          <p class="privacy">密钥仅存本机，仅发送给各供应商官方接口，无任何第三方。</p>
+        </div>
+      </section>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// Mock 渲染：结构与扩展 popup.js 输出保持同构，确认后按此落地
+const CLOCK = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+const cls = (p) => p >= 95 ? " bad" : p >= 80 ? " warn" : "";
+
+function limitCard({ name, pct, used, total, unit, extra, reset }) {
+  const c = cls(pct);
+  const meta = [];
+  if (used != null) meta.push(`已用 <b>${used}</b> / ${total} ${unit}`);
+  if (extra) meta.push(extra);
+  return `
+    <div class="limit">
+      <div class="limit-top">
+        <span class="limit-name">${name}</span>
+        <span class="limit-pct${c}">${pct}<small>%</small></span>
+      </div>
+      <div class="limit-track"><div class="limit-fill${c}" style="width:${pct}%"></div></div>
+      <div class="limit-meta">${meta.join('<span class="sep">·</span>')}</div>
+      <div class="limit-reset">${CLOCK}<span>${reset}</span></div>
+    </div>`;
+}
+
+const DATA = {
+  normal: {
+    glm: [
+      { name: "5 小时", pct: 10, used: "216", total: "2,000", unit: "积分", extra: "剩余 <b>1,783</b>", reset: "3 小时 49 分后重置" },
+      { name: "本周", pct: 17, used: "1,732", total: "10,000", unit: "积分", extra: "剩余 <b>8,267</b>", reset: "3 天 6 小时后重置" },
+    ],
+    mcp: [{ pct: 46, used: "920", total: "2,000" }],
+    go: [
+      { name: "5 小时", pct: 0, extra: "限额 <b>$12</b>", reset: "4 小时 57 分后重置" },
+      { name: "每周", pct: 46, extra: "限额 <b>$30</b>", reset: "1 天后重置" },
+      { name: "每月", pct: 46, extra: "限额 <b>$60</b>", reset: "11 天 5 小时后重置" },
+    ],
+    // 到期日由月度窗口重置时间推算（mock 基准：今天 2026-09-06）
+    goExpiry: { text: "到期 2026-09-17", cls: "" },
+  },
+  warn: {
+    glm: [
+      { name: "5 小时", pct: 87, used: "1,740", total: "2,000", unit: "积分", extra: "剩余 <b>260</b>", reset: "48 分后重置" },
+      { name: "本周", pct: 93, used: "9,318", total: "10,000", unit: "积分", extra: "剩余 <b>682</b>", reset: "3 天 6 小时后重置" },
+    ],
+    mcp: [{ pct: 81, used: "1,620", total: "2,000" }],
+    go: [
+      { name: "5 小时", pct: 0, extra: "限额 <b>$12</b>", reset: "4 小时 57 分后重置" },
+      { name: "每周", pct: 84, extra: "限额 <b>$30</b>", reset: "1 天后重置" },
+      { name: "每月", pct: 97, extra: "限额 <b>$60</b>", reset: "2 天后重置" },
+    ],
+    goExpiry: { text: "到期 2026-09-08（剩 2 天）", cls: "warn" },
+  },
+};
+
+function render(mode) {
+  const d = DATA[document.getElementById("warn-mode").checked ? "warn" : "normal"];
+  document.getElementById("limits").innerHTML = d.glm.map(limitCard).join("");
+  document.getElementById("mcp").innerHTML = d.mcp.map((m) => `
+    <div class="mcp-row">
+      <span class="l">MCP · ${m.pct}%</span>
+      <span class="v"><b style="color:${m.pct >= 80 ? "var(--warn)" : "var(--ok)"}">${m.used}</b> / ${m.total} 次</span>
+    </div>`).join("");
+  document.getElementById("go-limits").innerHTML = d.go.map(limitCard).join("");
+  const goExp = document.getElementById("go-expiry");
+  goExp.textContent = d.goExpiry.text;
+  goExp.className = "plan-expiry" + (d.goExpiry.cls ? " " + d.goExpiry.cls : "");
+
+  const v = mode || document.querySelector("#views .on").dataset.v;
+  const popup = document.getElementById("popup");
+  const both = v === "both";
+  popup.hidden = v === "setup";
+  document.getElementById("setup-view").hidden = v !== "setup";
+  popup.classList.toggle("wide", both);
+  document.getElementById("pane-glm").hidden = v === "go";
+  document.getElementById("pane-go").hidden = v === "glm";
+}
+
+document.getElementById("views").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll("#views button").forEach((x) => x.classList.toggle("on", x === b));
+  render(b.dataset.v);
+});
+document.getElementById("warn-mode").addEventListener("change", () => render());
+render();
+</script>
+</body>
+</html>

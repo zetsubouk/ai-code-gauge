@@ -22,6 +22,14 @@ export function fmtTime(ts) {
     : `${p(d.getMonth() + 1)}-${p(d.getDate())} ${hm}`;
 }
 
+/** 时间戳(ms) -> 本地时区 YYYY-MM-DD（套餐到期日等纯日期展示，禁用 UTC 切片避免日期偏差） */
+export function fmtDate(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 /** 剩余毫秒 -> 友好的中文剩余时长 */
 export function fmtRemain(ms) {
   if (ms < 0) return "已到重置时间";
