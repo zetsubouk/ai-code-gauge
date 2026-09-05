@@ -6,7 +6,7 @@
 
 实时查看智谱 **GLM（中国大陆版）** 与 **OpenCode Go** 的 Coding Plan 用量：5 小时 / 每周 / 每月（MCP）额度，工具栏徽章随时掌握当前 5 小时使用占比。
 
-![Chrome](https://img.shields.io/badge/Chrome%20(Chromium)-96%2B-blue) ![Manifest](https://img.shields.io/badge/Manifest-V3-9cf) ![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/badge/Version-1.1.0-blue)
+![Chrome](https://img.shields.io/badge/Chrome%20(Chromium)-96%2B-blue) ![Manifest](https://img.shields.io/badge/Manifest-V3-9cf) ![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/badge/Version-1.2.0-blue)
 
 </div>
 

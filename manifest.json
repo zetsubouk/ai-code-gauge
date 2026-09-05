@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AI 码表 — Coding Plan 用量监控",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "多供应商 AI Coding Plan 用量监控：智谱 GLM（中国大陆）5小时/每周/MCP、OpenCode Go 5小时/每周/每月。密钥仅存本机，仅发给官方接口。",
   "permissions": ["storage", "alarms"],
   "host_permissions": [
