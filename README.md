@@ -8,7 +8,7 @@
 
 实时查看智谱 **GLM（中国大陆版）** 与 **OpenCode Go** 的 Coding Plan 用量：5 小时 / 每周 / 每月（MCP）额度，工具栏徽章随时掌握当前 5 小时使用占比。
 
-![Chrome](https://img.shields.io/badge/Chrome%20(Chromium)-96%2B-blue) ![Manifest](https://img.shields.io/badge/Manifest-V3-9cf) ![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/badge/Version-1.3.1-blue)
+![Chrome](https://img.shields.io/badge/Chrome%20(Chromium)-96%2B-blue) ![Manifest](https://img.shields.io/badge/Manifest-V3-9cf) ![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/badge/Version-1.4.0-blue)
 
 [简介](#简介) · [截图](#截图) · [安装](#安装) · [配置](#配置) · [隐私与安全](#隐私与安全) · [开发](#开发)
 
@@ -50,6 +50,9 @@
 - [x] 5 小时 / 每周 / 每月额度横向进度条（已用%、已用/总额、剩余、重置倒计时）
 - [x] 套餐等级 + 到期日期显示（到期 ≤7 天变黄、已过期变红）
 - [x] OpenCode Go 当月到期日自动推算（基于每月额度重置时间）
+- [x] 近 7 日用量趋势（本地每日快照，滚动保留 30 天，零依赖纯 CSS）
+- [x] 额度 ≥95% 系统提醒（设置可开关，同窗口 6 小时冷却）
+- [x] 配置导出 / 导入（API Key 可选包含，便于备份迁移）
 - [x] 工具栏徽章（占比实时显示，阈值变色；双供应商可配置循环切换间隔）
 - [x] 自动刷新（1–30 分钟可设）
 - [x] 深色扁平 UI、全中文
@@ -94,7 +97,8 @@
 3. **套餐到期日期**（选填，GLM）：填写你的订阅到期日，将显示在套餐等级后，临近到期会有颜色提醒。
 4. **自动刷新间隔**：1–30 分钟。
 5. **图标循环切换间隔**（双供应商时）：5–60 秒。
-6. 保存后面板自动查询并展示。
+6. **额度系统提醒**（可选）：开启后任一额度窗口 ≥95% 时发送系统通知，同一窗口 6 小时冷却。
+7. 保存后面板自动查询并展示。设置页还提供**配置导出 / 导入**（JSON，API Key 默认不导出）。
 
 密钥只存本机 `chrome.storage.local`，仅发送给对应供应商官方监控接口。
 
