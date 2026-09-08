@@ -3,7 +3,7 @@
 
 import { nf, fmtTime, fmtRemain, pctColor, pctState, clampPct, daysLeft, fmtDate } from "../shared/format.js";
 import { LEVEL_NAMES, classifyWindow, THRESHOLDS } from "../shared/constants.js";
-import { lastDays } from "../shared/history.js";
+import { lastDays, trendSlots } from "../shared/history.js";
 import { validateSettingsImport } from "../shared/io.js";
 
 const $ = (id) => document.getElementById(id);
@@ -93,22 +93,24 @@ function buildCard({ name, pct, metaSegs, resetText, trend = [] }) {
   el.className = "limit";
   el.append(top, track, meta, reset);
 
-  // 近 7 日趋势：纯 CSS 迷你柱条，装饰性（卡片文字已含当日数据）
-  if (trend.length) {
-    const trendEl = document.createElement("div");
-    trendEl.className = "trend";
-    trendEl.setAttribute("aria-hidden", "true");
-    for (const e of trend) {
+  // 近 7 日趋势：固定 7 槽位、最右为最新一天，无数据日淡显占位（装饰性，卡片文字已含当日数据）
+  const trendEl = document.createElement("div");
+  trendEl.className = "trend";
+  trendEl.setAttribute("aria-hidden", "true");
+  for (const e of trendSlots(trend)) {
+    const bar = document.createElement("i");
+    if (e) {
       const p = clampPct(e.p);
-      const bar = document.createElement("i");
       bar.style.height = Math.max(8, Math.round(p)) + "%";
       if (p >= THRESHOLDS.bad) bar.classList.add("bad");
       else if (p >= THRESHOLDS.warn) bar.classList.add("warn");
       bar.title = `${e.d} ${Math.round(p)}%`;
-      trendEl.appendChild(bar);
+    } else {
+      bar.classList.add("off");
     }
-    el.appendChild(trendEl);
+    trendEl.appendChild(bar);
   }
+  el.appendChild(trendEl);
   return el;
 }
 

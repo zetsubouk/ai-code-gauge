@@ -189,6 +189,7 @@ body.wide .panes { grid-template-columns: 1fr 1fr; }
 .trend i:last-child { opacity: 1; }
 .trend i.warn { background: var(--warn); }
 .trend i.bad { background: var(--bad); }
+.trend i.off { background: var(--track); opacity: .55; }
 
 .empty { padding: 14px; text-align: center; color: var(--muted); font-size: 12px; }
 

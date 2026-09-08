@@ -1,7 +1,7 @@
 // shared/history.js 每日快照存储测试
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { upsertDay, lastDays, MAX_DAYS, TREND_DAYS } from "../shared/history.js";
+import { upsertDay, lastDays, trendSlots, MAX_DAYS, TREND_DAYS } from "../shared/history.js";
 
 test("upsertDay：新日期追加，旧顺序保持升序", () => {
   let arr = upsertDay([], "2026-09-01", 10);
@@ -45,4 +45,18 @@ test("lastDays：取最近 n 天，非法入参返回空数组", () => {
   assert.deepEqual(lastDays(null), []);
   assert.deepEqual(lastDays("junk"), []);
   assert.deepEqual(lastDays([], 7), []);
+});
+
+test("trendSlots：固定 7 槽、左侧 null 占位、最右为最新一天", () => {
+  // 空历史 → 7 个 null 占位
+  assert.deepEqual(trendSlots([]), [null, null, null, null, null, null, null]);
+  assert.deepEqual(trendSlots(null), [null, null, null, null, null, null, null]);
+  // 单条数据（部署首日）→ 6 个占位 + 最右 1 条真实数据
+  const one = [{ d: "2026-09-08", p: 28 }];
+  assert.deepEqual(trendSlots(one), [null, null, null, null, null, null, one]);
+  // 9 条 → 只取最近 7 条，无占位
+  const nine = Array.from({ length: 9 }, (_, i) => ({ d: `d${i}`, p: i }));
+  const slots = trendSlots(nine);
+  assert.equal(slots.length, 7);
+  assert.deepEqual(slots.map((e) => e.d), ["d2", "d3", "d4", "d5", "d6", "d7", "d8"]);
 });

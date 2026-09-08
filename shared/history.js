@@ -17,3 +17,10 @@ export function upsertDay(arr, day, pct) {
 export function lastDays(arr, n = TREND_DAYS) {
   return Array.isArray(arr) ? arr.slice(-Math.max(1, n)) : [];
 }
+
+/** 补齐为固定 n 槽的趋势序列（最右为最新一天），无数据的天以 null 占位 */
+export function trendSlots(trend, n = TREND_DAYS) {
+  const arr = Array.isArray(trend) ? trend.slice(-n) : [];
+  const pad = Math.max(0, n - arr.length);
+  return [...Array.from({ length: pad }, () => null), ...arr];
+}
