@@ -2,7 +2,9 @@
 // 每次打开强刷；错误显式暴露。
 
 import { nf, fmtTime, fmtRemain, pctColor, pctState, clampPct, daysLeft, fmtDate } from "../shared/format.js";
-import { LEVEL_NAMES, classifyWindow } from "../shared/constants.js";
+import { LEVEL_NAMES, classifyWindow, THRESHOLDS } from "../shared/constants.js";
+import { lastDays } from "../shared/history.js";
+import { validateSettingsImport } from "../shared/io.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -10,7 +12,8 @@ const els = {
   setup: $("setup"), panel: $("panel"),
   glmOn: $("f-glm-on"), glmKey: $("f-glm-key"), glmExpiry: $("f-glm-expiry"),
   goOn: $("f-go-on"), goKey: $("f-go-key"),
-  fRefresh: $("f-refresh"), fCycle: $("f-cycle"), btnSave: $("btn-save"), setupMsg: $("setup-msg"),
+  fRefresh: $("f-refresh"), fCycle: $("f-cycle"), fNotify: $("f-notify"), btnSave: $("btn-save"), setupMsg: $("setup-msg"),
+  btnExport: $("btn-export"), btnImport: $("btn-import"), fImport: $("f-import"), fExportKeys: $("f-export-keys"),
   planBadge: $("plan-badge"), planExpiry: $("plan-expiry"), goExpiry: $("go-expiry"), lastUpdated: $("last-updated"),
   statusBar: $("status-bar"), planErr: $("plan-err"),
   panes: $("panes"), paneGlm: $("pane-glm"), paneGo: $("pane-go"),
@@ -37,8 +40,8 @@ function metaSeg(pre, strong, post = "") {
   return span;
 }
 
-// 卡片结构：名称+百分比 / 进度条（带 aria）/ 用量行 / 重置行
-function buildCard({ name, pct, metaSegs, resetText }) {
+// 卡片结构：名称+百分比 / 进度条（带 aria）/ 用量行 / 重置行 / 近 7 日趋势
+function buildCard({ name, pct, metaSegs, resetText, trend = [] }) {
   const pctInt = Math.round(pct);
   const state = pctState(pct);
 
@@ -89,11 +92,28 @@ function buildCard({ name, pct, metaSegs, resetText }) {
   const el = document.createElement("div");
   el.className = "limit";
   el.append(top, track, meta, reset);
+
+  // 近 7 日趋势：纯 CSS 迷你柱条，装饰性（卡片文字已含当日数据）
+  if (trend.length) {
+    const trendEl = document.createElement("div");
+    trendEl.className = "trend";
+    trendEl.setAttribute("aria-hidden", "true");
+    for (const e of trend) {
+      const p = clampPct(e.p);
+      const bar = document.createElement("i");
+      bar.style.height = Math.max(8, Math.round(p)) + "%";
+      if (p >= THRESHOLDS.bad) bar.classList.add("bad");
+      else if (p >= THRESHOLDS.warn) bar.classList.add("warn");
+      bar.title = `${e.d} ${Math.round(p)}%`;
+      trendEl.appendChild(bar);
+    }
+    el.appendChild(trendEl);
+  }
   return el;
 }
 
 /* ---------- GLM 额度卡片 ---------- */
-function limitBar(limit, label) {
+function limitBar(limit, label, trend) {
   const pct = clampPct(limit.percentage);
   const used = Number(limit.currentValue || 0);
   const total = Number(limit.usage || 0);
@@ -108,18 +128,18 @@ function limitBar(limit, label) {
   const resetText = limit.nextResetTime
     ? `${fmtRemain(limit.nextResetTime - Date.now())}后重置`
     : "";
-  return buildCard({ name: label, pct, metaSegs, resetText });
+  return buildCard({ name: label, pct, metaSegs, resetText, trend });
 }
 
 /* ---------- OpenCode Go 额度卡片（与 GLM 同构） ---------- */
-function goBar(w) {
+function goBar(w, trend) {
   const pct = clampPct(w.percent);
   // Go 接口仅返回百分比，用量行展示已知档位的参考限额
   const metaSegs = w.limit ? [metaSeg("参考限额 ", `$${w.limit}`)] : [];
   const resetText = w.endTs
     ? `${fmtRemain(w.endTs - Date.now())}后重置`
     : "";
-  return buildCard({ name: w.name, pct, metaSegs, resetText });
+  return buildCard({ name: w.name, pct, metaSegs, resetText, trend });
 }
 
 /* ---------- MCP ---------- */
@@ -146,7 +166,7 @@ function renderMcp(limits, container) {
 }
 
 /* ---------- 顶层渲染 ---------- */
-function render(payload) {
+function render(payload, history) {
   if (!payload) {
     els.limits.innerHTML = `<div class="empty">暂无数据，正在刷新…</div>`;
     els.goLimits.innerHTML = "";
@@ -210,6 +230,7 @@ function render(payload) {
   els.paneGlm.hidden = !glmShown;
   if (glmShown) {
     const limits = (glm && glm.limits) || [];
+    const histGlm = (history && history.glm) || {};
     els.limits.innerHTML = "";
     els.mcp.innerHTML = "";
     if (!limits.length) {
@@ -217,8 +238,8 @@ function render(payload) {
     } else {
       const h5 = limits.find((l) => classifyWindow(l) === "h5");
       const weekly = limits.find((l) => classifyWindow(l) === "weekly");
-      if (h5) els.limits.appendChild(limitBar(h5, "5 小时"));
-      if (weekly) els.limits.appendChild(limitBar(weekly, "本周"));
+      if (h5) els.limits.appendChild(limitBar(h5, "5 小时", lastDays(histGlm.h5)));
+      if (weekly) els.limits.appendChild(limitBar(weekly, "本周", lastDays(histGlm.weekly)));
       const leftover = limits.filter((l) => classifyWindow(l) === "other");
       if (leftover.length && !h5 && !weekly) els.limits.appendChild(limitBar(leftover[0], leftover[0].name || "额度"));
       renderMcp(leftover || [], els.mcp);
@@ -230,10 +251,11 @@ function render(payload) {
   if (goShown) {
     els.goLimits.innerHTML = "";
     const windows = (go && go.windows) || [];
+    const histGo = (history && history.go) || {};
     if (!windows.length) {
       els.goLimits.innerHTML = `<div class="empty">OpenCode Go 无用量数据。</div>`;
     } else {
-      windows.forEach((w) => els.goLimits.appendChild(goBar(w)));
+      windows.forEach((w) => els.goLimits.appendChild(goBar(w, lastDays(histGo[w.key]))));
     }
   }
 }
@@ -249,7 +271,10 @@ async function doRefresh() {
   setRefreshBusy(true);
   try {
     const resp = await chrome.runtime.sendMessage({ type: "refresh" });
-    if (resp && resp.data) render(resp.data);
+    if (resp && resp.data) {
+      const { history } = await chrome.storage.local.get(["history"]);
+      render(resp.data, history);
+    }
     else if (resp && resp.error) {
       render({ fetchedAt: Date.now(), providers: {}, errors: [{ provider: "glm", message: "刷新失败：" + resp.error, kind: "server" }] });
     }
@@ -266,9 +291,8 @@ function syncFieldsVisibility() {
   els.goKey.closest(".prov-fields").hidden = !els.goOn.checked;
 }
 
-async function init() {
-  const got = await chrome.storage.local.get(["lastData", "lastFetchAt", "providers", "refreshMin", "badgeCycleSec"]);
-  const prov = got.providers || { glm: {}, go: {} };
+function fillSettings(got) {
+  const prov = got.providers || {};
   const glm = prov.glm || {}, go = prov.go || {};
   els.glmOn.checked = glm.enabled !== false;
   els.glmKey.value = glm.apiKey || ""; els.glmExpiry.value = glm.planExpiry || "";
@@ -277,12 +301,19 @@ async function init() {
   syncFieldsVisibility();
   els.fRefresh.value = String(got.refreshMin || 10);
   els.fCycle.value = String(got.badgeCycleSec || 10);
+  els.fNotify.checked = got.notify === true;
+}
+
+async function init() {
+  const got = await chrome.storage.local.get(["lastData", "lastFetchAt", "providers", "refreshMin", "badgeCycleSec", "notify", "history"]);
+  fillSettings(got);
   els.footRefresh.textContent = `每 ${got.refreshMin || 10} 分钟自动刷新`;
 
+  const glm = (got.providers || {}).glm || {}, go = (got.providers || {}).go || {};
   const anyEnabled = (glm.enabled && glm.apiKey) || (go.enabled && go.apiKey);
   if (!anyEnabled) { showSetup(); return; }
   showPanel();
-  if (got.lastData) render(got.lastData);
+  if (got.lastData) render(got.lastData, got.history);
   doRefresh();
 }
 
@@ -311,7 +342,8 @@ els.btnSave.addEventListener("click", async () => {
   }
   const refreshMin = Number(els.fRefresh.value) || 10;
   const badgeCycleSec = Number(els.fCycle.value) || 10;
-  await chrome.storage.local.set({ providers, refreshMin, badgeCycleSec });
+  const notify = els.fNotify.checked;
+  await chrome.storage.local.set({ providers, refreshMin, badgeCycleSec, notify });
   show("已保存，正在查询…", true);
   try {
     const resp = await chrome.runtime.sendMessage({ type: "settingsChanged" });
@@ -320,7 +352,10 @@ els.btnSave.addEventListener("click", async () => {
     if (glmErr) { show("GLM API Key 校验失败：" + shortError(glmErr), false); return; }
     const goErr = resp.data && (resp.data.errors || []).find((e) => e.provider === "go" && e.kind === "invalid_key");
     if (goErr) { show("OpenCode Go API Key 校验失败：" + shortError(goErr), false); return; }
-    if (resp.data) render(resp.data);
+    if (resp.data) {
+      const { history } = await chrome.storage.local.get(["history"]);
+      render(resp.data, history);
+    }
     showPanel();
   } catch (e) {
     show("保存成功，查询未完成（" + shortError(e) + "）", false);
@@ -333,5 +368,86 @@ function show(msg, ok) {
   els.setupMsg.className = "msg " + (ok ? "ok" : "bad");
   els.setupMsg.textContent = msg;
 }
+
+/* ---------- 配置导出/导入 ---------- */
+async function doExport() {
+  try {
+    const got = await chrome.storage.local.get(["providers", "refreshMin", "badgeCycleSec", "notify"]);
+    const prov = got.providers || {};
+    const includeKeys = els.fExportKeys.checked;
+    const data = {
+      app: "ai-code-gauge",
+      exportedAt: new Date().toISOString(),
+      settings: {
+        providers: {
+          glm: {
+            enabled: prov.glm?.enabled !== false,
+            planExpiry: prov.glm?.planExpiry || "",
+            apiKey: includeKeys ? (prov.glm?.apiKey || "") : "",
+          },
+          go: {
+            enabled: prov.go?.enabled === true,
+            apiKey: includeKeys ? (prov.go?.apiKey || "") : "",
+          },
+        },
+        refreshMin: got.refreshMin || 10,
+        badgeCycleSec: got.badgeCycleSec || 10,
+        notify: got.notify === true,
+      },
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ai-code-gauge-config-${fmtDate(Date.now())}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    show(includeKeys ? "已导出（含 API Key，注意保管）" : "已导出（不含 API Key）", true);
+  } catch (e) {
+    show("导出失败：" + shortError(e), false);
+  }
+}
+
+async function doImport() {
+  const file = els.fImport.files && els.fImport.files[0];
+  els.fImport.value = ""; // 允许重复选择同一文件
+  if (!file) return;
+  try {
+    const s = validateSettingsImport(JSON.parse(await file.text()));
+    // 空 apiKey 视为「保留现有密钥」
+    const cur = (await chrome.storage.local.get(["providers"])).providers || {};
+    const providers = {
+      glm: {
+        enabled: s.providers.glm.enabled,
+        planExpiry: s.providers.glm.planExpiry,
+        apiKey: s.providers.glm.apiKey || (cur.glm && cur.glm.apiKey) || "",
+      },
+      go: {
+        enabled: s.providers.go.enabled,
+        apiKey: s.providers.go.apiKey || (cur.go && cur.go.apiKey) || "",
+      },
+    };
+    await chrome.storage.local.set({
+      providers,
+      refreshMin: s.refreshMin,
+      badgeCycleSec: s.badgeCycleSec,
+      notify: s.notify,
+    });
+    fillSettings(await chrome.storage.local.get(["providers", "refreshMin", "badgeCycleSec", "notify"]));
+    show("已导入，正在查询…", true);
+    const resp = await chrome.runtime.sendMessage({ type: "settingsChanged" });
+    if (resp && resp.data) {
+      const { history } = await chrome.storage.local.get(["history"]);
+      render(resp.data, history);
+    }
+    showPanel();
+  } catch (e) {
+    show("导入失败：" + shortError(e), false);
+  }
+}
+
+els.btnExport.addEventListener("click", doExport);
+els.btnImport.addEventListener("click", () => els.fImport.click());
+els.fImport.addEventListener("change", doImport);
 
 init();

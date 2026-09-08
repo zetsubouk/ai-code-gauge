@@ -89,8 +89,21 @@
           <option value="60">60 秒</option>
         </select>
       </label>
+      <label class="check-field">
+        <input type="checkbox" id="f-notify" />
+        <span>额度 ≥95% 时发送系统提醒（同窗口 6 小时冷却）</span>
+      </label>
       <button id="btn-save" class="primary">保存并查询</button>
       <p id="setup-msg" class="msg" hidden></p>
+      <div class="io-row">
+        <button id="btn-export" class="ghost" type="button">导出配置</button>
+        <button id="btn-import" class="ghost" type="button">导入配置</button>
+        <input type="file" id="f-import" accept="application/json,.json" hidden />
+      </div>
+      <label class="check-field">
+        <input type="checkbox" id="f-export-keys" />
+        <span>导出包含 API Key（明文，请谨慎保管与分享）</span>
+      </label>
       <p class="privacy">密钥仅存本机，仅发送给各供应商官方接口，无任何第三方。</p>
     </div>
   </section>

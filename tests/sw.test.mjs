@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 const store = {};
 const alarms = [];
 const badge = { texts: [], colors: [] };
+const notifyCalls = [];
 const captured = {};
 const noop = async () => {};
 
@@ -35,10 +36,14 @@ globalThis.chrome = {
     setBadgeBackgroundColor: async (o) => badge.colors.push(o.color),
     setIcon: async () => {},
   },
+  notifications: {
+    create: async (opts) => notifyCalls.push(opts),
+  },
   runtime: {
     onInstalled: { addListener: noop },
     onStartup: { addListener: noop },
     onMessage: { addListener: (cb) => { captured.handler = cb; } },
+    getURL: (p) => "chrome-extension://test/" + p,
   },
 };
 
@@ -72,11 +77,14 @@ const GO_OK = {
 
 let glmMode = "ok"; // ok | auth_error
 let goMode = "ok";
+let glmH5Pct = null; // 覆盖 5h 窗口百分比（通知阈值测试用）
 globalThis.fetch = async (url) => {
   const u = String(url);
   if (u.includes("bigmodel.cn")) {
     if (glmMode === "auth_error") return jsonResponse({ code: 401, msg: "invalid api key", success: false });
-    return jsonResponse(GLM_OK);
+    const payload = structuredClone(GLM_OK);
+    if (glmH5Pct !== null) payload.data.limits[0].percentage = glmH5Pct;
+    return jsonResponse(payload);
   }
   if (u.includes("opencode.ai")) {
     if (goMode === "auth_error") return jsonResponse({ type: "error", error: { type: "AuthError", message: "Missing API key." } }, 401);
@@ -153,4 +161,35 @@ test("双供应商均禁用：快照为空、ok、清理循环", async () => {
   assert.equal(resp.data.providers.glm, null);
   assert.equal(resp.data.providers.go, null);
   assert.ok(!alarms.includes("badge-cycle")); // 无可显示项 → 清理循环闹钟
+});
+
+test("阈值提醒：≥95% 触发通知，6 小时冷却内不重复", async () => {
+  glmH5Pct = 97;
+  store.providers = {
+    glm: { enabled: true, apiKey: "glm-key", planExpiry: "" },
+    go: { enabled: false, apiKey: "" },
+  };
+  store.notify = true;
+  store.notifyCool = {};
+  notifyCalls.length = 0;
+
+  await send({ type: "refresh" });
+  assert.equal(notifyCalls.length, 1);
+  assert.match(notifyCalls[0].title, /智谱 GLM 5 小时额度已用 97%/);
+  assert.match(notifyCalls[0].iconUrl, /icon128\.png$/);
+  assert.ok(store.notifyCool["glm.h5"] > 0);
+
+  // 冷却期内再刷：不重复提醒
+  await send({ type: "refresh" });
+  assert.equal(notifyCalls.length, 1);
+
+  // 低于阈值：不提醒，且清除测试钩子
+  glmH5Pct = 50;
+  store.notifyCool = {};
+  notifyCalls.length = 0;
+  await send({ type: "refresh" });
+  assert.equal(notifyCalls.length, 0);
+
+  glmH5Pct = null;
+  store.notify = false;
 });

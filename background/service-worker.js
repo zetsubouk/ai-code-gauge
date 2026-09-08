@@ -2,9 +2,10 @@
 // 密钥只存本机 chrome.storage.local，仅用于向各供应商官方接口鉴权。
 
 import { fetchQuotaLimit } from "../shared/api.js";
-import { LEVEL_NAMES, describeLimit } from "../shared/constants.js";
+import { LEVEL_NAMES, describeLimit, classifyWindow, THRESHOLDS } from "../shared/constants.js";
 import { fetchGoUsage } from "../shared/go.js";
-import { pctColor, badgeText, clampPct } from "../shared/format.js";
+import { pctColor, badgeText, clampPct, fmtDate } from "../shared/format.js";
+import { upsertDay } from "../shared/history.js";
 
 const DEFAULTS = {
   providers: {
@@ -20,7 +21,7 @@ const DEFAULTS = {
 const LEGACY_KEYS = ["apiKey", "planExpiry"];
 
 async function getSettings() {
-  const got = await chrome.storage.local.get(["providers", "refreshMin", "badgeCycleSec", ...LEGACY_KEYS]);
+  const got = await chrome.storage.local.get(["providers", "refreshMin", "badgeCycleSec", "notify", ...LEGACY_KEYS]);
   let providers = got.providers;
   if (!providers) {
     providers = {
@@ -32,7 +33,12 @@ async function getSettings() {
   const go = { enabled: false, apiKey: "", ...(providers.go || {}) };
   // 与设置下拉框、README 口径一致：仅接受 5–60 秒
   const badgeCycleSec = Math.max(5, Math.min(60, Number(got.badgeCycleSec) || DEFAULTS.badgeCycleSec));
-  return { refreshMin: Number(got.refreshMin) || DEFAULTS.refreshMin, badgeCycleSec, providers: { glm, go } };
+  return {
+    refreshMin: Number(got.refreshMin) || DEFAULTS.refreshMin,
+    badgeCycleSec,
+    notify: got.notify === true,
+    providers: { glm, go },
+  };
 }
 
 /* ---------- GLM：仅拉取额度（已按需求移除 24h 模型/工具用量） ---------- */
@@ -126,8 +132,84 @@ async function setActionIndicator(lines) {
   await setBadgeItem(items[0]);
 }
 
+/* ---------- 历史：每日快照（按天去重、有界保留） ---------- */
+async function recordHistories(snapshot) {
+  const day = fmtDate(Date.now());
+  const { history } = await chrome.storage.local.get(["history"]);
+  const h = history && typeof history === "object" ? history : {};
+  h.glm = h.glm || {};
+  h.go = h.go || {};
+  let changed = false;
+
+  const glm = snapshot.providers.glm;
+  if (glm && Array.isArray(glm.limits)) {
+    for (const key of ["h5", "weekly"]) {
+      const l = glm.limits.find((x) => classifyWindow(x) === key);
+      if (l) {
+        h.glm[key] = upsertDay(h.glm[key], day, l.percentage);
+        changed = true;
+      }
+    }
+  }
+  const go = snapshot.providers.go;
+  if (go && Array.isArray(go.windows)) {
+    for (const w of go.windows) {
+      h.go[w.key] = upsertDay(h.go[w.key], day, w.percent);
+      changed = true;
+    }
+  }
+  if (changed) await chrome.storage.local.set({ history: h });
+}
+
+/* ---------- 阈值提醒：≥bad 触发系统通知，同窗口 6 小时冷却 ---------- */
+const NOTIFY_COOLDOWN_MS = 6 * 3600 * 1000;
+
+async function checkNotify(snapshot) {
+  const items = [];
+  const glm = snapshot.providers.glm;
+  if (glm && Array.isArray(glm.limits)) {
+    for (const key of ["h5", "weekly"]) {
+      const l = glm.limits.find((x) => classifyWindow(x) === key);
+      if (l && Number(l.percentage) >= THRESHOLDS.bad) {
+        items.push({
+          key: `glm.${key}`,
+          title: `智谱 GLM ${key === "h5" ? "5 小时" : "每周"}额度已用 ${Math.round(Number(l.percentage))}%`,
+        });
+      }
+    }
+  }
+  const go = snapshot.providers.go;
+  if (go && Array.isArray(go.windows)) {
+    for (const w of go.windows) {
+      if (Number(w.percent) >= THRESHOLDS.bad) {
+        items.push({ key: `go.${w.key}`, title: `OpenCode Go ${w.name}额度已用 ${Math.round(Number(w.percent))}%` });
+      }
+    }
+  }
+  if (!items.length) return;
+
+  const { notifyCool } = await chrome.storage.local.get(["notifyCool"]);
+  const cool = notifyCool && typeof notifyCool === "object" ? notifyCool : {};
+  const now = Date.now();
+  for (const it of items) {
+    if (cool[it.key] && now - cool[it.key] < NOTIFY_COOLDOWN_MS) continue;
+    cool[it.key] = now;
+    try {
+      await chrome.notifications.create({
+        type: "basic",
+        iconUrl: chrome.runtime.getURL("icons/icon128.png"),
+        title: it.title,
+        message: "额度即将耗尽，注意安排使用节奏。",
+      });
+    } catch {
+      // 通知失败不影响刷新与缓存
+    }
+  }
+  await chrome.storage.local.set({ notifyCool: cool });
+}
+
 async function refresh() {
-  const { providers, badgeCycleSec } = await getSettings();
+  const { providers, badgeCycleSec, notify } = await getSettings();
   const lines = [];
   const errors = [];
   const snapshot = { fetchedAt: Date.now(), providers: { glm: null, go: null }, errors };
@@ -161,6 +243,8 @@ async function refresh() {
   await setActionIndicator(lines);
 
   await persistSnapshot(snapshot);
+  await recordHistories(snapshot);
+  if (notify) await checkNotify(snapshot);
   const ok = errors.length === 0;
   return { ok, reason: ok ? "ok" : (lines.length ? "partial" : "error"), data: snapshot };
 }
