@@ -28,12 +28,12 @@
    git checkout -b feature/你的功能名
    ```
 3. 编写代码，保持与现有风格一致。
-4. **本地自测**：运行语法与接口冒烟检查：
+4. **本地自测**：运行单元测试与接口冒烟检查：
    ```bash
-   node --check popup/popup.js
-   node --check background/service-worker.js
-   BIGMODEL_KEY=<你的key> npm run test:api
+   npm test          # shared/ 纯函数与后台 refresh() 集成测试（Node 18+，零依赖）
+   BIGMODEL_KEY=<你的key> npm run test:api   # 线上接口冒烟（可选，无 key 跳过）
    ```
+   CI 会在 push/PR 时自动跑语法检查与 `npm test`。
    若改动涉及打包，运行 `npm run build` 确认可产出 `dist/`。
 5. 提交（使用清晰、规范的中文或英文提交信息）：
    ```bash

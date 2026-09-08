@@ -5,8 +5,25 @@
 
 ## [Unreleased]
 
+### Added
+- **单元测试**：`tests/` 基于 Node 内置 test runner（零依赖），覆盖 shared 纯函数、接口解析与错误分类、后台 `refresh()` 集成（快照结构、徽章顺序、故障隔离）；`npm test` 一键运行。
+- **CI**：GitHub Actions 在 push/PR 跑语法检查与单元测试，打 `v*` tag 自动打包并上传 zip artifact。
+- **docs/ROADMAP.md**：记录后续排期（历史趋势、阈值通知、设置导入导出、GLM 国际版/团队版、供应商注册表、i18n、商店上架）。
+
 ### Changed
 - **仓库整理**：合并并删除遗留的 `trae/agent-*` 残留分支（其改动均已包含于 main）；清理元数据中的旧品牌残留（package.json 描述、后台日志前缀、图标脚本与弹窗注释），README 结构树补充 `design/`，移除弹窗中后台永不返回的 `no_key` 死分支。
+- **阈值与窗口识别收敛为单一来源**：`THRESHOLDS`、`classifyWindow()`、`pctState()` 落在 `shared/`，弹窗与后台共用，消除三处 80/95 阈值与两处窗口魔数的漂移风险。
+- **共享网络层 `shared/net.js`**：统一超时控制，网络级瞬态失败自动重试一次（业务错误不重试）；GLM/Go 两处重复的超时样板合并。
+- **徽章百分比钳制 0–100**，防接口异常值。
+- **弹窗渲染加固**：额度卡片与 MCP 行改为 DOM 构建 + `textContent`，动态文本不再经过 `innerHTML`。
+- **可访问性**：进度条补 `role="progressbar"` 与取值标注；错误/状态栏补 `aria-live`；图标按钮补 `aria-label` 与 `:focus-visible` 焦点环；`prefers-reduced-motion` 下关闭动画；面板标题供应商名可截断防溢出；muted 文字对比度微调。
+- Go 各窗口美元限额展示口径改为「参考限额」，并在 docs/API.md 注明该数值仅对已知档位成立。
+
+### Fixed
+- 弹窗 MCP 行在账号无总额数据时会显示「NaN 次」的问题（`nf()` 对不可转数字的输入统一显示「—」）。
+- `scripts/package.py` 打包清单改为从 manifest.json 推导并校验引用完整性，防止未来新增运行时文件（如 `_locales/`）被静默漏打包；同时校验 manifest 与 package.json 版本号一致。
+- `scripts/test-api.mjs` 失败时退出码非 0（原先恒为 0），支持 `GO_KEY` 冒烟 OpenCode Go。
+- 文档纠偏：INSTALL.md 更新新版商店域名并补 Python/Pillow 前置与调试脚本用法；SECURITY.md 补 OpenCode Go 密钥边界并改用 GitHub 私有漏洞报告渠道指引。
 
 ## [1.3.1] - 2026-09-06
 

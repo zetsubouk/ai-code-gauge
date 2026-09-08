@@ -32,7 +32,7 @@ npm run build        # 在项目根目录执行，生成 dist/ai-code-gauge.zip
 ```
 
 产物内含 `manifest.json / icons / background / popup / shared`，可直接上传到
-[Chrome Web Store Dashboard](https://chrome.google.com/webstore/devconsole/)。
+[Chrome Web Store Dashboard](https://chromewebstore.google.com/u/0/devconsole/)。
 
 发布前请准备：
 - 图标已内置（16/32/48/128）。
@@ -42,7 +42,18 @@ npm run build        # 在项目根目录执行，生成 dist/ai-code-gauge.zip
 ## 五、开发命令
 
 ```bash
-npm run test:api     # 接口冒烟测试：BIGMODEL_KEY=<key> node scripts/test-api.mjs
-npm run icons        # 重新生成图标
-npm run build        # 打包 zip
+npm test            # 单元测试（Node 18+ 内置 test runner，零依赖）
+npm run test:api    # 线上接口冒烟：BIGMODEL_KEY=<glm key> GO_KEY=<go key> node scripts/test-api.mjs
+npm run icons       # 重新生成图标（需 Python 3 + Pillow：pip install pillow）
+npm run build       # 打包 zip
 ```
+
+## 六、本地调试辅助脚本
+
+- `scripts/repro-sw.mjs`：在 Node 中用 chrome 桩复现后台 `refresh()` 链路（需真实双密钥）：
+  ```bash
+  GLM=<glm key> GO=<go key> node scripts/repro-sw.mjs
+  ```
+- `scripts/harness.html`：弹窗 UI 渲染的本地预览（内置模拟数据）。需经 http 服务打开
+  （如 `python -m http.server` 后访问 `/scripts/harness.html`），直接双击无法加载 module 脚本。
+  注意：它是 popup.html 的手工同步副本，改动 popup 结构时需一并更新。
