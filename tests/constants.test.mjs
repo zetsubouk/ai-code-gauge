@@ -1,7 +1,7 @@
 // shared/constants.js 窗口识别与阈值口径测试
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { LEVEL_NAMES, THRESHOLDS, describeLimit, classifyWindow } from "../shared/constants.js";
+import { LEVEL_NAMES, THRESHOLDS, describeLimit, classifyWindow, headlineLimit } from "../shared/constants.js";
 
 test("describeLimit：unit/number 组合映射", () => {
   assert.equal(describeLimit({ type: "CREDIT_LIMIT", unit: 3, number: 5 }), "5小时额度");
@@ -18,6 +18,18 @@ test("classifyWindow：h5/weekly/other 归类（每月额度归 other，由 MCP 
   assert.equal(classifyWindow({ type: "CREDIT_LIMIT", unit: 6, number: 7 }), "weekly");
   assert.equal(classifyWindow({ type: "CREDIT_LIMIT", unit: 6, number: 30 }), "other");
   assert.equal(classifyWindow({ type: "OTHER", unit: 3, number: 5 }), "other");
+});
+
+test("headlineLimit：徽章口径与弹窗同源（h5 优先 → weekly → 首个 CREDIT_LIMIT）", () => {
+  const h5 = { type: "CREDIT_LIMIT", unit: 3, number: 5, percentage: 20 };
+  const weekly = { type: "CREDIT_LIMIT", unit: 6, number: 1, percentage: 8 };
+  const monthly = { type: "CREDIT_LIMIT", unit: 6, number: 30, percentage: 3 };
+  assert.equal(headlineLimit([weekly, h5]), h5); // 顺序无关，5 小时优先
+  assert.equal(headlineLimit([monthly, weekly]), weekly); // 无 5 小时 → 回退每周
+  assert.equal(headlineLimit([monthly]), monthly); // 兜底：第一个 CREDIT_LIMIT
+  assert.equal(headlineLimit([]), null);
+  assert.equal(headlineLimit(null), null);
+  assert.equal(headlineLimit([{ type: "OTHER", unit: 3, number: 5 }]), null);
 });
 
 test("LEVEL_NAMES 与 THRESHOLDS 口径", () => {

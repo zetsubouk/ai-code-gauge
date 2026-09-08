@@ -139,6 +139,23 @@ body.wide .panes { grid-template-columns: 1fr 1fr; }
 /* 无数据时不留空胶囊/空占位 */
 .plan-badge:empty, .plan-expiry:empty { display: none; }
 
+/* 刷新失败降级提示：该栏展示的是上次成功拉取的数据（黄色弱提示条，区别于红色错误条） */
+.stale-note {
+  margin: 0 0 8px; padding: 6px 9px; border-radius: 8px;
+  font-size: 11px; color: var(--warn);
+  background: rgba(245,166,35,.10); border-left: 3px solid var(--warn);
+}
+
+/* 面板标题行的「打开官方面板」小按钮：推到行尾，悬停提亮 */
+.link-btn {
+  margin-left: auto; width: 20px; height: 20px; padding: 0;
+  border: 0; border-radius: 6px; background: transparent;
+  color: var(--muted); cursor: pointer;
+  display: grid; place-items: center; flex: none;
+  transition: color .15s;
+}
+.link-btn:hover { color: var(--text); }
+
 /* ============ 额度卡片：名称+百分比 / 进度条 / 用量行 / 重置行 ============ */
 .limits { display: flex; flex-direction: column; gap: 8px; padding: 0; }
 .limit {
@@ -222,6 +239,7 @@ body.wide .panes { grid-template-columns: 1fr 1fr; }
 /* ============ 可访问性 ============ */
 /* 键盘操作：清晰焦点环（置于 .field input:focus 之后以覆盖其 outline:none） */
 .icon-btn:focus-visible,
+.link-btn:focus-visible,
 button.primary:focus-visible,
 .field input:focus-visible,
 .field select:focus-visible,

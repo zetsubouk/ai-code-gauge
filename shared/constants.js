@@ -24,6 +24,18 @@ export function classifyWindow(limit) {
   return "other";
 }
 
+/**
+ * 徽章/头条口径（与弹窗同源 classifyWindow）：优先 5 小时窗口，回退每周，
+ * 再回退 nextResetTime 最早的一个 CREDIT_LIMIT；无可用额度返回 null。
+ */
+export function headlineLimit(limits) {
+  const arr = Array.isArray(limits) ? limits : [];
+  return arr.find((l) => classifyWindow(l) === "h5")
+    || arr.find((l) => classifyWindow(l) === "weekly")
+    || arr.find((l) => l.type === "CREDIT_LIMIT")
+    || null;
+}
+
 // 保留知名的额度窗口识别（unit/number 组合）
 // unit=3 小时、unit=6 天（按 nextResetTime 升序排序更可靠，这里仅作兜底）
 export function describeLimit(limit) {

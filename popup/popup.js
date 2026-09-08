@@ -17,12 +17,28 @@ const els = {
   planBadge: $("plan-badge"), planExpiry: $("plan-expiry"), goExpiry: $("go-expiry"), lastUpdated: $("last-updated"),
   statusBar: $("status-bar"), planErr: $("plan-err"),
   panes: $("panes"), paneGlm: $("pane-glm"), paneGo: $("pane-go"),
+  glmStale: $("glm-stale"), goStale: $("go-stale"),
   limits: $("limits"), mcp: $("mcp-wrap"), goLimits: $("go-limits"),
   btnSettings: $("btn-settings"), btnRefresh: $("btn-refresh"),
+  glmOpen: $("btn-glm-open"), goOpen: $("btn-go-open"),
   footRefresh: $("foot-refresh"),
 };
 
+// 官方用量页入口（平台首页；后续确认深层控制台路径后可直接替换）
+const OFFICIAL_URLS = { glm: "https://open.bigmodel.cn/", go: "https://opencode.ai/" };
+
 function shortError(e) { return e && e.message ? e.message : (e || "未知错误"); }
+
+// 刷新失败降级提示：该供应商本次拉取失败，展示的是上次成功数据（stale）
+function setStaleNote(el, prov) {
+  el.hidden = !(prov && prov.stale);
+  if (prov && prov.stale) {
+    const at = Number(prov.fetchedAt);
+    el.textContent = at
+      ? `本次刷新失败，显示 ${fmtTime(at)} 拉取的数据`
+      : "本次刷新失败，显示上次成功拉取的数据";
+  }
+}
 
 /* ---------- 额度卡片构建：动态文本一律 textContent/DOM 构建，仅静态 SVG 图标用 innerHTML ---------- */
 const CLOCK_SVG = '<svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
@@ -186,7 +202,9 @@ function renderMcp(limits, container) {
 }
 
 /* ---------- 顶层渲染 ---------- */
+let lastView = null; // 最近一次渲染的数据，供弹窗存活期间的周期重绘使用
 function render(payload, history) {
+  lastView = { payload, history };
   if (!payload) {
     els.limits.innerHTML = `<div class="empty">暂无数据，正在刷新…</div>`;
     els.goLimits.innerHTML = "";
@@ -227,24 +245,34 @@ function render(payload, history) {
       else if (dl !== null && dl <= 7) { els.goExpiry.classList.add("warn"); els.goExpiry.textContent += `（剩 ${dl} 天）`; }
     }
   }
-  els.lastUpdated.textContent = payload.fetchedAt ? fmtTime(payload.fetchedAt) + " 更新" : "";
+  // 更新时间按所展示供应商各自的最后成功拉取时间计算：降级展示旧数据时如实反映新旧
+  const times = [];
+  if (glmShown && glm && Number(glm.fetchedAt)) times.push(Number(glm.fetchedAt));
+  if (goShown && go && Number(go.fetchedAt)) times.push(Number(go.fetchedAt));
+  const shownAt = times.length ? Math.max(...times) : payload.fetchedAt;
+  els.lastUpdated.textContent = shownAt ? fmtTime(shownAt) + " 更新" : "";
 
-  // 错误（按供应商）
+  // 错误（按来源：GLM 专属条；Go 与传输层走通用状态条，仅 Go 加供应商前缀）
   const errs = payload.errors || [];
   const glmErr = errs.find((e) => e.provider === "glm");
-  const goErr = errs.find((e) => e.provider === "go");
   els.planErr.hidden = !glmErr;
   if (glmErr) els.planErr.textContent = "GLM 用量查询失败：" + shortError(glmErr);
   const otherErrs = errs.filter((e) => e.provider !== "glm");
   els.statusBar.hidden = otherErrs.length === 0;
   if (otherErrs.length) {
     els.statusBar.className = "status" + (otherErrs.some((e) => e.kind === "invalid_key") ? " bad" : "");
-    els.statusBar.textContent = otherErrs.map((e) => `OpenCode Go：` + shortError(e)).join("；");
+    els.statusBar.textContent = otherErrs
+      .map((e) => (e.provider === "go" ? "OpenCode Go：" : "") + shortError(e))
+      .join("；");
   }
 
   // 分栏：双供应商时两栏并排并加宽弹窗，根治窄栏挤压换行
   const both = glmShown && goShown;
   document.body.classList.toggle("wide", both);
+
+  // 降级提示随面板：仅在该供应商本次拉取失败但保留了上次数据时显示
+  setStaleNote(els.glmStale, glmShown ? glm : null);
+  setStaleNote(els.goStale, goShown ? go : null);
 
   // GLM 栏
   els.paneGlm.hidden = !glmShown;
@@ -259,7 +287,7 @@ function render(payload, history) {
       const h5 = limits.find((l) => classifyWindow(l) === "h5");
       const weekly = limits.find((l) => classifyWindow(l) === "weekly");
       if (h5) els.limits.appendChild(limitBar(h5, "5 小时", lastDays(histGlm.h5)));
-      if (weekly) els.limits.appendChild(limitBar(weekly, "本周", lastDays(histGlm.weekly)));
+      if (weekly) els.limits.appendChild(limitBar(weekly, "每周", lastDays(histGlm.weekly)));
       const leftover = limits.filter((l) => classifyWindow(l) === "other");
       if (leftover.length && !h5 && !weekly) els.limits.appendChild(limitBar(leftover[0], leftover[0].name || "额度"));
       renderMcp(leftover || [], els.mcp);
@@ -296,10 +324,10 @@ async function doRefresh() {
       render(resp.data, history);
     }
     else if (resp && resp.error) {
-      render({ fetchedAt: Date.now(), providers: {}, errors: [{ provider: "glm", message: "刷新失败：" + resp.error, kind: "server" }] });
+      render({ fetchedAt: Date.now(), providers: {}, errors: [{ provider: "transport", message: "刷新失败：" + resp.error, kind: "server" }] });
     }
   } catch (e) {
-    render({ fetchedAt: Date.now(), providers: {}, errors: [{ provider: "glm", message: "刷新失败：" + shortError(e), kind: "network" }] });
+    render({ fetchedAt: Date.now(), providers: {}, errors: [{ provider: "transport", message: "刷新失败：" + shortError(e), kind: "network" }] });
   } finally { setRefreshBusy(false); }
 }
 
@@ -328,6 +356,8 @@ async function init() {
   const got = await chrome.storage.local.get(["lastData", "lastFetchAt", "providers", "refreshMin", "badgeCycleSec", "notify", "history"]);
   fillSettings(got);
   els.footRefresh.textContent = `每 ${got.refreshMin || 10} 分钟自动刷新`;
+  // 弹窗存活期间每 30s 重绘一次，重置倒计时等相对时间保持新鲜；弹窗关闭即销毁，无需清理
+  setInterval(() => { if (lastView) render(lastView.payload, lastView.history); }, 30000);
 
   const glm = (got.providers || {}).glm || {}, go = (got.providers || {}).go || {};
   const anyEnabled = (glm.enabled && glm.apiKey) || (go.enabled && go.apiKey);
@@ -342,6 +372,8 @@ els.glmOn.addEventListener("change", syncFieldsVisibility);
 els.goOn.addEventListener("change", syncFieldsVisibility);
 els.btnRefresh.addEventListener("click", doRefresh);
 els.btnSettings.addEventListener("click", showSetup);
+els.glmOpen.addEventListener("click", () => chrome.tabs.create({ url: OFFICIAL_URLS.glm }));
+els.goOpen.addEventListener("click", () => chrome.tabs.create({ url: OFFICIAL_URLS.go }));
 
 els.btnSave.addEventListener("click", async () => {
   const providers = {

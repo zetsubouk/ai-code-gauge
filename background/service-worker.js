@@ -2,7 +2,7 @@
 // 密钥只存本机 chrome.storage.local，仅用于向各供应商官方接口鉴权。
 
 import { fetchQuotaLimit } from "../shared/api.js";
-import { LEVEL_NAMES, describeLimit, classifyWindow, THRESHOLDS } from "../shared/constants.js";
+import { LEVEL_NAMES, describeLimit, classifyWindow, headlineLimit, THRESHOLDS } from "../shared/constants.js";
 import { fetchGoUsage } from "../shared/go.js";
 import { pctColor, badgeText, clampPct, fmtDate } from "../shared/format.js";
 import { upsertDay } from "../shared/history.js";
@@ -56,8 +56,9 @@ async function fetchGlm(glmCfg) {
 }
 
 /* ---------- 徽章：单行大字号；双供应商循环切换 ---------- */
+// 头条口径与弹窗同源：优先 5 小时窗口、回退每周，保证徽章数字与面板一致
 function glmHeadlinePct(glmData) {
-  const credit = (glmData && glmData.limits || []).find((l) => l.type === "CREDIT_LIMIT");
+  const credit = headlineLimit(glmData && glmData.limits);
   if (!credit) return null;
   const p = Number(credit.percentage);
   if (Number.isNaN(p)) return null;
@@ -98,7 +99,7 @@ async function cycleOnce() {
   await chrome.storage.local.set({ badgeIdx: idx });
 }
 
-// 定时器 + 闹钟（>=30s 保底）：SW 存活时按用户秒数轮换；SW 挂起后由闹钟续醒恢复
+// interval 主驱动：SW 存活时按用户秒数轮换；闹钟（Chrome 最小周期 30s）仅作 SW 挂起后的冷启动保底（见 onAlarm）
 async function startBadgeCycling(items, sec) {
   await chrome.storage.local.set({ badgeItems: items, badgeIdx: 0 });
   clearCycleTimer();
@@ -134,6 +135,7 @@ async function setActionIndicator(lines) {
 
 /* ---------- 历史：每日快照（按天去重、有界保留） ---------- */
 async function recordHistories(snapshot) {
+  // stale 是拉取失败时复用的上次成功数据，不代表当日用量，跳过不写快照
   const day = fmtDate(Date.now());
   const { history } = await chrome.storage.local.get(["history"]);
   const h = history && typeof history === "object" ? history : {};
@@ -142,7 +144,7 @@ async function recordHistories(snapshot) {
   let changed = false;
 
   const glm = snapshot.providers.glm;
-  if (glm && Array.isArray(glm.limits)) {
+  if (glm && !glm.stale && Array.isArray(glm.limits)) {
     for (const key of ["h5", "weekly"]) {
       const l = glm.limits.find((x) => classifyWindow(x) === key);
       if (l) {
@@ -152,7 +154,7 @@ async function recordHistories(snapshot) {
     }
   }
   const go = snapshot.providers.go;
-  if (go && Array.isArray(go.windows)) {
+  if (go && !go.stale && Array.isArray(go.windows)) {
     for (const w of go.windows) {
       h.go[w.key] = upsertDay(h.go[w.key], day, w.percent);
       changed = true;
@@ -166,8 +168,9 @@ const NOTIFY_COOLDOWN_MS = 6 * 3600 * 1000;
 
 async function checkNotify(snapshot) {
   const items = [];
+  // stale 数据可能已过时，不据此触发提醒
   const glm = snapshot.providers.glm;
-  if (glm && Array.isArray(glm.limits)) {
+  if (glm && !glm.stale && Array.isArray(glm.limits)) {
     for (const key of ["h5", "weekly"]) {
       const l = glm.limits.find((x) => classifyWindow(x) === key);
       if (l && Number(l.percentage) >= THRESHOLDS.bad) {
@@ -179,7 +182,7 @@ async function checkNotify(snapshot) {
     }
   }
   const go = snapshot.providers.go;
-  if (go && Array.isArray(go.windows)) {
+  if (go && !go.stale && Array.isArray(go.windows)) {
     for (const w of go.windows) {
       if (Number(w.percent) >= THRESHOLDS.bad) {
         items.push({ key: `go.${w.key}`, title: `OpenCode Go ${w.name}额度已用 ${Math.round(Number(w.percent))}%` });
@@ -208,8 +211,11 @@ async function checkNotify(snapshot) {
   await chrome.storage.local.set({ notifyCool: cool });
 }
 
-async function refresh() {
+async function runRefresh() {
   const { providers, badgeCycleSec, notify } = await getSettings();
+  // 上一份快照：某供应商拉取失败时用于降级保留其上次成功数据
+  const { lastData: prev } = await chrome.storage.local.get(["lastData"]);
+  const prevProviders = (prev && prev.providers) || {};
   const lines = [];
   const errors = [];
   const snapshot = { fetchedAt: Date.now(), providers: { glm: null, go: null }, errors };
@@ -218,12 +224,17 @@ async function refresh() {
   if (glmCfg.enabled && glmCfg.apiKey) {
     try {
       const glmData = await fetchGlm(glmCfg);
-      snapshot.providers.glm = glmData;
+      // fetchedAt 记录该供应商数据的实际拉取时间，供降级展示时标注数据新旧
+      snapshot.providers.glm = { ...glmData, fetchedAt: snapshot.fetchedAt };
       const pct = glmHeadlinePct(glmData);
       if (pct !== null) lines.push({ provider: "glm", pct });
     } catch (e) {
       errors.push({ provider: "glm", message: e.message || String(e), kind: e.kind });
-      snapshot.providers.glm = { level: "unknown", levelName: "unknown", planExpiry: glmCfg.planExpiry, limits: [] };
+      // 降级而非清空：复用上次成功数据并标记 stale，弹窗据此提示「显示的是旧数据」
+      const prevGlm = prevProviders.glm;
+      snapshot.providers.glm = prevGlm && !prevGlm.error && Array.isArray(prevGlm.limits) && prevGlm.limits.length
+        ? { ...prevGlm, planExpiry: glmCfg.planExpiry, stale: true }
+        : { level: "unknown", levelName: "unknown", planExpiry: glmCfg.planExpiry, limits: [] };
     }
   }
 
@@ -231,12 +242,15 @@ async function refresh() {
   if (goCfg.enabled && goCfg.apiKey) {
     try {
       const goData = await fetchGoUsage(goCfg.apiKey);
-      snapshot.providers.go = goData;
+      snapshot.providers.go = { ...goData, fetchedAt: snapshot.fetchedAt };
       const rolling = (goData.windows || []).find((w) => w.key === "rolling");
       if (rolling) lines.push({ provider: "go", pct: clampPct(rolling.percent) });
     } catch (e) {
       errors.push({ provider: "go", message: e.message || String(e), kind: e.kind });
-      snapshot.providers.go = { error: true, message: e.message || String(e) };
+      const prevGo = prevProviders.go;
+      snapshot.providers.go = prevGo && !prevGo.error && Array.isArray(prevGo.windows) && prevGo.windows.length
+        ? { ...prevGo, stale: true }
+        : { error: true, message: e.message || String(e) };
     }
   }
 
@@ -247,6 +261,15 @@ async function refresh() {
   if (notify) await checkNotify(snapshot);
   const ok = errors.length === 0;
   return { ok, reason: ok ? "ok" : (lines.length ? "partial" : "error"), data: snapshot };
+}
+
+// 并发守卫：弹窗消息与定时闹钟可能同时请求刷新，进行中则复用同一次执行，
+// 避免重复网络请求与 lastData/history/badgeItems 的竞态写入
+let refreshInFlight = null;
+function refresh() {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = runRefresh().finally(() => { refreshInFlight = null; });
+  return refreshInFlight;
 }
 
 function persistSnapshot(snap) {
@@ -266,7 +289,9 @@ chrome.runtime.onStartup.addListener(() => { ensureAlarm().then(() => refresh())
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "glm-refresh") refresh();
-  else if (alarm.name === "badge-cycle") { restartCycleTimer(); cycleOnce(); }
+  // 徽章循环仅冷启动续醒：SW 存活时 interval 在跑，这里不动，避免与 interval 同刻重复推进；
+  // SW 挂起唤醒（cycleTimer 随模块消失为 null）时才恢复定时器并补推一次
+  else if (alarm.name === "badge-cycle" && !cycleTimer) restartCycleTimer().then(cycleOnce);
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
