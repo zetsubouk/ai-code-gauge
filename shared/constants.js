@@ -14,6 +14,16 @@ export const LEVEL_NAMES = {
   max: "Max",
 };
 
+// 用量状态阈值（全局唯一口径）：>= bad 红、>= warn 黄，颜色与状态类都由此推导
+export const THRESHOLDS = { warn: 80, bad: 95 };
+
+/** 额度窗口归类：h5 | weekly | other（弹窗与后台共用，避免各处魔数漂移） */
+export function classifyWindow(limit) {
+  if (limit.type === "CREDIT_LIMIT" && limit.unit === 3 && limit.number === 5) return "h5";
+  if (limit.type === "CREDIT_LIMIT" && limit.unit === 6 && (limit.number === 1 || limit.number === 7)) return "weekly";
+  return "other";
+}
+
 // 保留知名的额度窗口识别（unit/number 组合）
 // unit=3 小时、unit=6 天（按 nextResetTime 升序排序更可靠，这里仅作兜底）
 export function describeLimit(limit) {

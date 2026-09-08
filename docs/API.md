@@ -121,7 +121,7 @@ Authorization: Bearer <go-api-key>
 ```
 
 - 三个窗口：`rolling`（5 小时）、`weekly`（每周）、`monthly`（每月），仅返回 `percent`（已用百分比）与 `resetsAt`（下次重置 ISO 时间），**不返回美元数值**。
-- 各窗口的已知美元限额用于辅助展示：rolling `$12`、weekly `$30`、monthly `$60`。
+- 各窗口的美元限额为**已知档位的参考值**（扩展内硬编码于 `shared/go.js`）：rolling `$12`、weekly `$30`、monthly `$60`。官方不同订阅档位或调价后该数值不再准确，仅作辅助展示，以官方页面为准。
 - 鉴权失败（Key 无效）：`{"type":"error","error":{"type":"AuthError","message":"Missing API key."}}`，HTTP 401。
 
 ## 三、通用边界与注意

@@ -7,7 +7,7 @@
   --panel-2: #1c2334;
   --line: rgba(255,255,255,.07);
   --text: #e9edf6;
-  --muted: #8a92a4;
+  --muted: #99a1b3;
   --accent: #5b77ff;
   --accent-2: #8a6bff;
   --ok: #2fd57c;
@@ -111,6 +111,8 @@ body.wide .panes { grid-template-columns: 1fr 1fr; }
 .pdot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 .pdot.glm { background: var(--accent-2); }
 .pdot.go { background: #4f8cff; }
+/* 供应商名可收缩截断，防止长名 + 徽章 + 到期挤爆窄面板 */
+.pname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .plan-badge {
   padding: 1px 8px; border-radius: 999px; flex: none;
   font-size: 10px; font-weight: 700; color: #fff;
@@ -167,7 +169,7 @@ body.wide .panes { grid-template-columns: 1fr 1fr; }
 .mcp-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 5px 0; }
 .mcp-row .l { color: var(--muted); font-weight: 600; }
 .mcp-row .v { color: var(--muted); font-variant-numeric: tabular-nums; }
-.mcp-row .v b { font-size: 13px; color: var(--text); }
+.mcp-row .v b { font-size: 13px; }
 
 .empty { padding: 14px; text-align: center; color: var(--muted); font-size: 12px; }
 
@@ -193,3 +195,19 @@ body.wide .panes { grid-template-columns: 1fr 1fr; }
 .prov-name { font-size: 13px; color: var(--text); }
 .prov-fields { margin-top: 10px; }
 .prov-fields[hidden] { display: none; }
+
+/* ============ 可访问性 ============ */
+/* 键盘操作：清晰焦点环（置于 .field input:focus 之后以覆盖其 outline:none） */
+.icon-btn:focus-visible,
+button.primary:focus-visible,
+.field input:focus-visible,
+.field select:focus-visible,
+.prov-head input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* 减少动态效果偏好：关闭旋转与过渡动画 */
+@media (prefers-reduced-motion: reduce) {
+  body, .limit-fill, .icon-btn { transition: none; }
+  .icon-btn.spin { animation: none; }
+}

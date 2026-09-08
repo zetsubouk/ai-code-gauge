@@ -1,8 +1,8 @@
 // 弹窗逻辑：渲染多供应商用量（GLM 智谱大陆 / OpenCode Go），额度卡片分段展示（用量一行、重置时间独立一行）；
 // 每次打开强刷；错误显式暴露。
 
-import { nf, fmtTime, fmtRemain, pctColor, daysLeft, fmtDate } from "../shared/format.js";
-import { LEVEL_NAMES } from "../shared/constants.js";
+import { nf, fmtTime, fmtRemain, pctColor, pctState, clampPct, daysLeft, fmtDate } from "../shared/format.js";
+import { LEVEL_NAMES, classifyWindow } from "../shared/constants.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -21,88 +21,126 @@ const els = {
 
 function shortError(e) { return e && e.message ? e.message : (e || "未知错误"); }
 
-/* ---------- GLM 额度窗口识别 ---------- */
-function classify(limit) {
-  if (limit.type === "CREDIT_LIMIT" && limit.unit === 3 && limit.number === 5) return "h5";
-  if (limit.type === "CREDIT_LIMIT" && limit.unit === 6 && (limit.number === 1 || limit.number === 7)) return "weekly";
-  return "other";
-}
-
-/* ---------- 额度卡片：名称+百分比 / 进度条 / 用量行 / 重置行 ---------- */
+/* ---------- 额度卡片构建：动态文本一律 textContent/DOM 构建，仅静态 SVG 图标用 innerHTML ---------- */
 const CLOCK_SVG = '<svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
 
-// 状态类：≥95 红、≥80 黄，进度条与百分比数字联动
-function stateCls(pct) { return pct >= 95 ? " bad" : pct >= 80 ? " warn" : ""; }
+// 用量行的一个分段：pre<strong>strong</strong>post
+function metaSeg(pre, strong, post = "") {
+  const span = document.createElement("span");
+  if (pre) span.append(pre);
+  if (strong) {
+    const b = document.createElement("b");
+    b.textContent = strong;
+    span.appendChild(b);
+  }
+  if (post) span.append(post);
+  return span;
+}
 
+// 卡片结构：名称+百分比 / 进度条（带 aria）/ 用量行 / 重置行
+function buildCard({ name, pct, metaSegs, resetText }) {
+  const pctInt = Math.round(pct);
+  const state = pctState(pct);
+
+  const top = document.createElement("div");
+  top.className = "limit-top";
+  const nameEl = document.createElement("span");
+  nameEl.className = "limit-name";
+  nameEl.textContent = name;
+  const pctEl = document.createElement("span");
+  pctEl.className = "limit-pct" + state;
+  pctEl.append(String(pctInt));
+  const small = document.createElement("small");
+  small.textContent = "%";
+  pctEl.appendChild(small);
+  top.append(nameEl, pctEl);
+
+  const track = document.createElement("div");
+  track.className = "limit-track";
+  track.setAttribute("role", "progressbar");
+  track.setAttribute("aria-valuemin", "0");
+  track.setAttribute("aria-valuemax", "100");
+  track.setAttribute("aria-valuenow", String(pctInt));
+  track.setAttribute("aria-label", `${name}已用 ${pctInt}%`);
+  const fill = document.createElement("div");
+  fill.className = "limit-fill" + state;
+  fill.style.width = pct + "%";
+  track.appendChild(fill);
+
+  const meta = document.createElement("div");
+  meta.className = "limit-meta";
+  metaSegs.forEach((seg, i) => {
+    if (i) {
+      const sep = document.createElement("span");
+      sep.className = "sep";
+      sep.textContent = "·";
+      meta.appendChild(sep);
+    }
+    meta.appendChild(seg);
+  });
+
+  const reset = document.createElement("div");
+  reset.className = "limit-reset";
+  reset.innerHTML = CLOCK_SVG; // 静态图标常量
+  const resetTextEl = document.createElement("span");
+  resetTextEl.textContent = resetText;
+  reset.appendChild(resetTextEl);
+
+  const el = document.createElement("div");
+  el.className = "limit";
+  el.append(top, track, meta, reset);
+  return el;
+}
+
+/* ---------- GLM 额度卡片 ---------- */
 function limitBar(limit, label) {
-  const pct = Math.max(0, Math.min(100, Number(limit.percentage || 0)));
-  const cls = stateCls(pct);
+  const pct = clampPct(limit.percentage);
   const used = Number(limit.currentValue || 0);
   const total = Number(limit.usage || 0);
   const remaining = limit.remaining;
-  const el = document.createElement("div");
-  el.className = "limit";
 
-  // 用量行：已用/总额/剩余聚合为一行，不再与重置时间混排
-  const metaParts = [];
-  if (total && used) metaParts.push(`已用 <b>${nf(used)}</b> / ${nf(total)} 积分`);
-  else if (used) metaParts.push(`已用 <b>${nf(used)}</b>`);
-  if (remaining !== undefined && remaining !== null) metaParts.push(`剩余 <b>${nf(remaining)}</b>`);
-  // 重置行：独立一行弱化展示
+  // 用量行：已用/总额/剩余聚合为一行，重置时间独立一行弱化展示
+  const metaSegs = [];
+  if (total && used) metaSegs.push(metaSeg("已用 ", nf(used), ` / ${nf(total)} 积分`));
+  else if (used) metaSegs.push(metaSeg("已用 ", nf(used)));
+  if (remaining !== undefined && remaining !== null) metaSegs.push(metaSeg("剩余 ", nf(remaining)));
+
   const resetText = limit.nextResetTime
     ? `${fmtRemain(limit.nextResetTime - Date.now())}后重置`
     : "";
-
-  el.innerHTML = `
-    <div class="limit-top">
-      <span class="limit-name">${label}</span>
-      <span class="limit-pct${cls}">${Math.round(pct)}<small>%</small></span>
-    </div>
-    <div class="limit-track"><div class="limit-fill${cls}" style="width:${pct}%"></div></div>
-    <div class="limit-meta">${metaParts.join('<span class="sep">·</span>')}</div>
-    <div class="limit-reset">${CLOCK_SVG}<span>${resetText}</span></div>`;
-  return el;
+  return buildCard({ name: label, pct, metaSegs, resetText });
 }
 
 /* ---------- OpenCode Go 额度卡片（与 GLM 同构） ---------- */
 function goBar(w) {
-  const pct = Math.max(0, Math.min(100, Number(w.percent) || 0));
-  const cls = stateCls(pct);
-  const el = document.createElement("div");
-  el.className = "limit";
-
-  // Go 接口仅返回百分比，用量行展示已知美元限额
-  const metaParts = [];
-  if (w.limit) metaParts.push(`限额 <b>$${w.limit}</b>`);
+  const pct = clampPct(w.percent);
+  // Go 接口仅返回百分比，用量行展示已知档位的参考限额
+  const metaSegs = w.limit ? [metaSeg("参考限额 ", `$${w.limit}`)] : [];
   const resetText = w.endTs
     ? `${fmtRemain(w.endTs - Date.now())}后重置`
     : "";
-
-  el.innerHTML = `
-    <div class="limit-top">
-      <span class="limit-name">${w.name}</span>
-      <span class="limit-pct${cls}">${Math.round(pct)}<small>%</small></span>
-    </div>
-    <div class="limit-track"><div class="limit-fill${cls}" style="width:${pct}%"></div></div>
-    <div class="limit-meta">${metaParts.join('<span class="sep">·</span>')}</div>
-    <div class="limit-reset">${CLOCK_SVG}<span>${resetText}</span></div>`;
-  return el;
+  return buildCard({ name: w.name, pct, metaSegs, resetText });
 }
 
 /* ---------- MCP ---------- */
 function renderMcp(limits, container) {
-  container.innerHTML = "";
-  const others = limits.filter((l) => classify(l) === "other");
-  if (!others.length) return;
+  container.textContent = "";
+  const others = limits.filter((l) => classifyWindow(l) === "other");
   for (const o of others) {
-    const pct = Number(o.percentage || 0);
-    const color = pctColor(pct);
+    const pct = clampPct(o.percentage);
+    const total = Number(o.usage || 0);
     const row = document.createElement("div");
     row.className = "mcp-row";
-    const used = o.currentValue, total = o.usage;
-    row.innerHTML = `
-      <span class="l">${o.name || "MCP"} ${total ? ("· " + Math.round(pct) + "%") : ""}</span>
-      <span class="v"><b style="color:${color}">${nf(used)}</b> / ${nf(total || "—")} 次</span>`;
+    const left = document.createElement("span");
+    left.className = "l";
+    left.textContent = `${o.name || "MCP"}${total ? ` · ${Math.round(pct)}%` : ""}`;
+    const right = document.createElement("span");
+    right.className = "v";
+    const used = document.createElement("b");
+    used.style.color = pctColor(pct);
+    used.textContent = nf(o.currentValue);
+    right.append(used, ` / ${nf(total || "—")} 次`);
+    row.append(left, right);
     container.appendChild(row);
   }
 }
@@ -177,11 +215,11 @@ function render(payload) {
     if (!limits.length) {
       els.limits.innerHTML = `<div class="empty">未查询到额度。</div>`;
     } else {
-      const h5 = limits.find((l) => classify(l) === "h5");
-      const weekly = limits.find((l) => classify(l) === "weekly");
+      const h5 = limits.find((l) => classifyWindow(l) === "h5");
+      const weekly = limits.find((l) => classifyWindow(l) === "weekly");
       if (h5) els.limits.appendChild(limitBar(h5, "5 小时"));
       if (weekly) els.limits.appendChild(limitBar(weekly, "本周"));
-      const leftover = limits.filter((l) => classify(l) === "other");
+      const leftover = limits.filter((l) => classifyWindow(l) === "other");
       if (leftover.length && !h5 && !weekly) els.limits.appendChild(limitBar(leftover[0], leftover[0].name || "额度"));
       renderMcp(leftover || [], els.mcp);
     }

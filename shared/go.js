@@ -1,9 +1,11 @@
 // OpenCode Go 用量查询（官方监控端点，已实测：/zen/go/v1/usage + Bearer API Key）
 
-const ENDPOINT = "https://opencode.ai/zen/go/v1/usage";
-const TIMEOUT = 20000;
+import { fetchWithTimeout } from "./net.js";
 
-// 各窗口的已知美元限额（Go 订阅档位）
+const ENDPOINT = "https://opencode.ai/zen/go/v1/usage";
+
+// 各窗口的已知美元限额（Go 订阅档位）。官方接口只返回百分比不返回金额，
+// 以下数值仅对当前已知档位成立，仅作参考展示，官方调价/换档后以官方页面为准。
 export const GO_WINDOW_LIMITS = {
   rolling: 12,  // $12 / 5 小时
   weekly: 30,
@@ -25,12 +27,9 @@ class GoError extends Error {
 
 /** 拉取 Go 用量。返回 { windows:[{key,name,percent,limit,resetsAt,endTs}] } */
 export async function fetchGoUsage(apiKey) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), TIMEOUT);
   try {
-    const resp = await fetch(ENDPOINT, {
+    const resp = await fetchWithTimeout(ENDPOINT, {
       headers: { Authorization: "Bearer " + apiKey },
-      signal: ctrl.signal,
     });
     let json = null;
     try { json = await resp.json(); } catch { json = null; }
@@ -60,8 +59,6 @@ export async function fetchGoUsage(apiKey) {
     if (e instanceof GoError) throw e;
     if (e && e.name === "AbortError") throw new GoError("请求超时", "network");
     throw new GoError("网络错误：" + (e && e.message ? e.message : e), "network");
-  } finally {
-    clearTimeout(timer);
   }
 }
 

@@ -4,7 +4,7 @@
 import { fetchQuotaLimit } from "../shared/api.js";
 import { LEVEL_NAMES, describeLimit } from "../shared/constants.js";
 import { fetchGoUsage } from "../shared/go.js";
-import { pctColor, badgeText } from "../shared/format.js";
+import { pctColor, badgeText, clampPct } from "../shared/format.js";
 
 const DEFAULTS = {
   providers: {
@@ -54,7 +54,8 @@ function glmHeadlinePct(glmData) {
   const credit = (glmData && glmData.limits || []).find((l) => l.type === "CREDIT_LIMIT");
   if (!credit) return null;
   const p = Number(credit.percentage);
-  return Number.isNaN(p) ? null : p;
+  if (Number.isNaN(p)) return null;
+  return clampPct(p);
 }
 
 async function restoreBrandIcon() {
@@ -150,7 +151,7 @@ async function refresh() {
       const goData = await fetchGoUsage(goCfg.apiKey);
       snapshot.providers.go = goData;
       const rolling = (goData.windows || []).find((w) => w.key === "rolling");
-      if (rolling) lines.push({ provider: "go", pct: rolling.percent });
+      if (rolling) lines.push({ provider: "go", pct: clampPct(rolling.percent) });
     } catch (e) {
       errors.push({ provider: "go", message: e.message || String(e), kind: e.kind });
       snapshot.providers.go = { error: true, message: e.message || String(e) };

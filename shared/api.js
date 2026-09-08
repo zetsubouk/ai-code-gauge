@@ -3,8 +3,7 @@
 // 注：24h 模型/工具用量封装自 v1.1.0 起随展示一并移除（契约仍记录于 docs/API.md）。
 
 import { ENDPOINTS } from "./constants.js";
-
-const TIMEOUT = 20000;
+import { fetchWithTimeout } from "./net.js";
 
 class ApiError extends Error {
   constructor(message, kind = "unknown") {
@@ -14,18 +13,13 @@ class ApiError extends Error {
 }
 
 async function request(url, apiKey, extraQuery = "") {
-  const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
-  const timer = ctrl
-    ? setTimeout(() => ctrl.abort(), TIMEOUT)
-    : null;
   try {
     const query = extraQuery ? `${url}?${extraQuery}` : url;
-    const resp = await fetch(query, {
+    const resp = await fetchWithTimeout(query, {
       headers: {
         Authorization: apiKey,
         "Content-Type": "application/json",
       },
-      signal: ctrl ? ctrl.signal : undefined,
     });
     const text = await resp.text();
     let json = null;
@@ -59,8 +53,6 @@ async function request(url, apiKey, extraQuery = "") {
     if (e instanceof ApiError) throw e;
     if (e && e.name === "AbortError") throw new ApiError("请求超时", "network");
     throw new ApiError("网络错误：" + (e && e.message ? e.message : e), "network");
-  } finally {
-    if (timer) clearTimeout(timer);
   }
 }
 

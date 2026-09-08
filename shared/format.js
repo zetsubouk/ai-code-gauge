@@ -1,9 +1,20 @@
 // 格式化辅助（背景与弹窗共用）
 
-/** 千分位 */
+import { THRESHOLDS } from "./constants.js";
+
+/** 百分比钳制到 0–100（防御接口异常值），非法输入归 0 */
+export function clampPct(pct) {
+  const n = Number(pct);
+  if (Number.isNaN(n)) return 0;
+  return Math.max(0, Math.min(100, n));
+}
+
+/** 千分位；空值或无法转数字的输入统一显示为 — */
 export function nf(n) {
-  if (n === null || n === undefined || Number.isNaN(n)) return "—";
-  return Number(n).toLocaleString("zh-CN");
+  if (n === null || n === undefined) return "—";
+  const num = Number(n);
+  if (Number.isNaN(num)) return "—";
+  return num.toLocaleString("zh-CN");
 }
 
 /** 时间戳(ms) -> HH:mm（当天）/ MM-DD HH:mm */
@@ -44,11 +55,18 @@ export function fmtRemain(ms) {
   return hh ? `${days} 天 ${hh} 小时` : `${days} 天`;
 }
 
-/** 徽章颜色：绿 <80%、黄 80–95%、红 >95% */
+/** 徽章颜色：绿 <warn、黄 warn–bad、红 >=bad（阈值见 constants.THRESHOLDS） */
 export function pctColor(pct) {
-  if (pct >= 95) return "#C62828"; // 红
-  if (pct >= 80) return "#F9A825"; // 黄
+  if (pct >= THRESHOLDS.bad) return "#C62828"; // 红
+  if (pct >= THRESHOLDS.warn) return "#F9A825"; // 黄
   return "#2E7D32"; // 绿
+}
+
+/** 进度条/百分比数字的状态类（与 pctColor 同口径）："" | " warn" | " bad" */
+export function pctState(pct) {
+  if (pct >= THRESHOLDS.bad) return " bad";
+  if (pct >= THRESHOLDS.warn) return " warn";
+  return "";
 }
 
 /** 距某日期(YYYY-MM-DD)的天数；无效返回 null。正值=剩 N 天，0=今天到期，负=已过期 */
