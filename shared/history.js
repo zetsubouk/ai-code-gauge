@@ -18,9 +18,15 @@ export function lastDays(arr, n = TREND_DAYS) {
   return Array.isArray(arr) ? arr.slice(-Math.max(1, n)) : [];
 }
 
-/** 补齐为固定 n 槽的趋势序列（最右为最新一天），无数据的天以 null 占位 */
-export function trendSlots(trend, n = TREND_DAYS) {
-  const arr = Array.isArray(trend) ? trend.slice(-n) : [];
-  const pad = Math.max(0, n - arr.length);
-  return [...Array.from({ length: pad }, () => null), ...arr];
+/**
+ * 趋势文案数据（方案 A）：近 N 日日均 X% · 今日 Y%；仅 1 天时 avg 为 null（调用方显示「今日 X%（首日记录）」）。
+ * 无数据返回 null，调用方整行隐藏。pct 均为已取整数值。
+ */
+export function describeTrend(arr, n = TREND_DAYS) {
+  const days = lastDays(arr, n);
+  if (!days.length) return null;
+  const today = days[days.length - 1].p;
+  if (days.length === 1) return { days: 1, today, avg: null };
+  const sum = days.reduce((acc, e) => acc + e.p, 0);
+  return { days: days.length, today, avg: Math.round(sum / days.length) };
 }

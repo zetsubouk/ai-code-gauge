@@ -1,7 +1,7 @@
 // shared/history.js 每日快照存储测试
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { upsertDay, lastDays, trendSlots, MAX_DAYS, TREND_DAYS } from "../shared/history.js";
+import { upsertDay, lastDays, describeTrend, MAX_DAYS, TREND_DAYS } from "../shared/history.js";
 
 test("upsertDay：新日期追加，旧顺序保持升序", () => {
   let arr = upsertDay([], "2026-09-01", 10);
@@ -47,16 +47,34 @@ test("lastDays：取最近 n 天，非法入参返回空数组", () => {
   assert.deepEqual(lastDays([], 7), []);
 });
 
-test("trendSlots：固定 7 槽、左侧 null 占位、最右为最新一天", () => {
-  // 空历史 → 7 个 null 占位
-  assert.deepEqual(trendSlots([]), [null, null, null, null, null, null, null]);
-  assert.deepEqual(trendSlots(null), [null, null, null, null, null, null, null]);
-  // 单条数据（部署首日）→ 6 个占位 + 最右 1 条真实数据
-  const one = { d: "2026-09-08", p: 28 };
-  assert.deepEqual(trendSlots([one]), [null, null, null, null, null, null, one]);
-  // 9 条 → 只取最近 7 条，无占位
-  const nine = Array.from({ length: 9 }, (_, i) => ({ d: `d${i}`, p: i }));
-  const slots = trendSlots(nine);
-  assert.equal(slots.length, 7);
-  assert.deepEqual(slots.map((e) => e.d), ["d2", "d3", "d4", "d5", "d6", "d7", "d8"]);
+test("describeTrend：无数据返回 null", () => {
+  assert.equal(describeTrend([]), null);
+  assert.equal(describeTrend(null), null);
+  assert.equal(describeTrend("junk"), null);
+});
+
+test("describeTrend：单日为首日态（avg=null）", () => {
+  assert.deepEqual(describeTrend([{ d: "2026-09-08", p: 6 }]), {
+    days: 1,
+    today: 6,
+    avg: null,
+  });
+});
+
+test("describeTrend：多日取日均四舍五入，today 取最新一条", () => {
+  const arr = [
+    { d: "d1", p: 8 },
+    { d: "d2", p: 15 },
+    { d: "d3", p: 22 },
+    { d: "d4", p: 28 },
+  ];
+  assert.deepEqual(describeTrend(arr), { days: 4, today: 28, avg: 18 }); // (8+15+22+28)/4 = 18.25 → 18
+});
+
+test("describeTrend：超过 7 天只按最近 7 天计算", () => {
+  const arr = Array.from({ length: 9 }, (_, i) => ({ d: `d${i}`, p: i * 10 })); // 最近 7 条：20..80
+  const t = describeTrend(arr);
+  assert.equal(t.days, 7);
+  assert.equal(t.today, 80);
+  assert.equal(t.avg, Math.round((20 + 30 + 40 + 50 + 60 + 70 + 80) / 7)); // 50
 });

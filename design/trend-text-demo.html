@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>趋势文字行 Demo — AI Coding Gauge</title>
+<style>
+  /* ===== 以下样式复制自 popup/popup.css，保证与真实 UI 一致 ===== */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0c0f15;
+    --panel: #151b28;
+    --panel-2: #1c2334;
+    --line: rgba(255,255,255,.07);
+    --text: #e9edf6;
+    --muted: #99a1b3;
+    --accent: #5b77ff;
+    --accent-2: #8a6bff;
+    --ok: #2fd57c;
+    --warn: #f5a623;
+    --bad: #ff5c5c;
+    --track: #232d40;
+  }
+  body {
+    font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text);
+    padding: 24px; max-width: 780px; -webkit-font-smoothing: antialiased;
+  }
+  h1 { font-size: 16px; margin-bottom: 4px; }
+  .sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+  h2 { font-size: 13.5px; margin: 22px 0 10px; padding-left: 9px; border-left: 3px solid var(--accent); }
+  .note { font-size: 12px; color: var(--muted); margin: 0 0 10px; }
+
+  .panes { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+  .pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px 9px; min-width: 0; }
+  .pane-title { font-size: 12.5px; font-weight: 700; margin: 0 0 9px; display: flex; align-items: center; gap: 7px; }
+  .pdot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .pdot.glm { background: var(--accent-2); }
+  .pdot.go { background: #4f8cff; }
+  .plan-badge { padding: 1px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; color: #fff;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+  .plan-expiry { font-size: 11px; font-weight: 600; color: var(--muted); }
+  .limits { display: flex; flex-direction: column; gap: 8px; }
+  .limit { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px 12px; min-width: 0; }
+  .limit-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .limit-name { font-weight: 600; font-size: 13px; }
+  .limit-pct { font-size: 24px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  .limit-pct small { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 1px; }
+  .limit-pct.warn { color: var(--warn); }
+  .limit-pct.bad { color: var(--bad); }
+  .limit-track { height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; margin: 9px 0 8px; }
+  .limit-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+  .limit-fill.warn { background: linear-gradient(90deg, #f5a623, #ff8a2b); }
+  .limit-fill.bad { background: linear-gradient(90deg, #ff5c5c, #d32f2f); }
+  .limit-meta { font-size: 11.5px; color: var(--muted); }
+  .limit-meta b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .limit-meta .sep { margin: 0 4px; opacity: .6; }
+  .limit-reset {
+    display: flex; align-items: center; gap: 4px; margin-top: 4px;
+    font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .limit-reset .ic { flex: none; opacity: .8; }
+  .ic { flex: none; opacity: .8; }
+
+  /* ===== Demo 新增：趋势文字行（放在重置行的下一行，与重置行同构） ===== */
+  .limit-trend {
+    display: flex; align-items: center; gap: 4px; margin-top: 3px;
+    font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .limit-trend b { color: var(--text); font-weight: 600; }
+  .limit-trend b.warn { color: var(--warn); }
+  .limit-trend b.bad { color: var(--bad); }
+  .limit-trend .sep { opacity: .6; margin: 0 1px; }
+
+  /* Demo 辅助：高亮新增行 / 方案标签 */
+  .hl { outline: 1px dashed rgba(91,119,255,.55); outline-offset: 3px; border-radius: 4px; }
+  .tag { display: inline-block; font-size: 10.5px; color: var(--accent); border: 1px solid rgba(91,119,255,.45);
+    border-radius: 999px; padding: 0 8px; margin-left: 8px; vertical-align: 1px; }
+  .variants .limit { margin-bottom: 10px; }
+  .kbd { font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+  <h1>趋势文字行 Demo</h1>
+  <p class="sub">取消柱状趋势图，改为重置时间下一行的一行文字。以下卡片样式与线上 popup 完全一致（取自 popup.css）。</p>
+
+  <h2>整体效果（推荐方案 A：日均 + 今日）<span class="tag">虚线框 = 新增行</span></h2>
+  <p class="note">数据为模拟：GLM 5h 已积累 7 天、GLM 本周 4 天、Go 5h 仅 1 天（部署首日）、Go 每月 6 天。</p>
+  <div class="panes">
+    <section class="pane">
+      <div class="pane-title"><i class="pdot glm"></i>智谱 GLM<span class="plan-badge">Lite</span><span class="plan-expiry">到期 2026-12-01</span></div>
+      <div class="limits">
+        <div class="limit">
+          <div class="limit-top"><span class="limit-name">5 小时</span><span class="limit-pct">32<small>%</small></span></div>
+          <div class="limit-track"><div class="limit-fill" style="width:32%"></div></div>
+          <div class="limit-meta">已用 <b>643</b> / 2,000 积分<span class="sep">·</span>剩余 <b>1,356</b></div>
+          <div class="limit-reset"><svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>1 小时 26 分后重置</span></div>
+          <div class="limit-trend hl"><svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 8-6-16-3 8H2"/></svg><span>近 7 日日均 <b>35%</b><span class="sep">·</span>今日 <b>32%</b></span></div>
+        </div>
+        <div class="limit">
+          <div class="limit-top"><span class="limit-name">本周</span><span class="limit-pct">28<small>%</small></span></div>
+          <div class="limit-track"><div class="limit-fill" style="width:28%"></div></div>
+          <div class="limit-meta">已用 <b>2,812</b> / 10,000 积分<span class="sep">·</span>剩余 <b>7,188</b></div>
+          <div class="limit-reset"><svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>1 天后重置</span></div>
+          <div class="limit-trend hl"><svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 8-6-16-3 8H2"/></svg><span>近 4 日日均 <b>18%</b><span class="sep">·</span>今日 <b>28%</b></span></div>
+        </div>
+      </div>
+    </section>
+    <section class="pane">
+      <div class="pane-title"><i class="pdot go"></i>OpenCode Go<span class="plan-expiry">到期 2026-09-17</span></div>
+      <div class="limits">
+        <div class="limit">
+          <div class="limit-top"><span class="limit-name">5 小时</span><span class="limit-pct">6<small>%</small></span></div>
+          <div class="limit-track"><div class="limit-fill" style="width:6%"></div></div>
+          <div class="limit-meta">参考限额 <b>$12</b></div>
+          <div class="limit-reset"><svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>2 小时 29 分后重置</span></div>
+          <div class="limit-trend hl"><svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 8-6-16-3 8H2"/></svg><span>今日 <b>6%</b>（首日记录）</span></div>
+        </div>
+        <div class="limit">
+          <div class="limit-top"><span class="limit-name">每月</span><span class="limit-pct warn">53<small>%</small></span></div>
+          <div class="limit-track"><div class="limit-fill" style="width:53%"></div></div>
+          <div class="limit-meta">参考限额 <b>$60</b></div>
+          <div class="limit-reset"><svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>8 天 23 小时后重置</span></div>
+          <div class="limit-trend hl"><svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 8-6-16-3 8H2"/></svg><span>近 6 日日均 <b>46%</b><span class="sep">·</span>今日 <b>53%</b></span></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <h2>文案方案备选（以 GLM 5h 的 7 天数据 20·28·35·41·38·52·32 为例）</h2>
+  <div class="variants">
+    <div class="limit">
+      <div class="limit-trend hl" style="margin:0"><svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 8-6-16-3 8H2"/></svg><span><b>方案 A（推荐）</b>：近 7 日日均 <b>35%</b><span class="sep">·</span>今日 <b>32%</b></span></div>
+      <p class="note" style="margin:6px 0 0">信息密度与长度的平衡最好；不足 7 天时显示「近 N 日」；仅 1 天时显示「今日 X%（首日记录）」。</p>
+    </div>
+    <div class="limit">
+      <div class="limit-trend hl" style="margin:0"><svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 8-6-16-3 8H2"/></svg><span><b>方案 B</b>：近 7 日 <b>20%</b> → <b>32%</b>（首日 → 今日，看走向）</span></div>
+      <p class="note" style="margin:6px 0 0">最能体现变化方向，但中间波动（如曾到 52%）被隐藏。</p>
+    </div>
+    <div class="limit">
+      <div class="limit-trend hl" style="margin:0"><svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 8-6-16-3 8H2"/></svg><span><b>方案 C</b>：近 7 日 <b>20 · 28 · 35 · 41 · 38 · 52 · 32%</b></span></div>
+      <p class="note" style="margin:6px 0 0">信息最全，但一行数字较密、可读性下降。</p>
+    </div>
+  </div>
+
+  <h2>边界情况（按方案 A 渲染）</h2>
+  <div class="variants">
+    <div class="limit">
+      <div class="limit-trend hl" style="margin:0"><svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 8-6-16-3 8H2"/></svg><span>今日 <b class="warn">82%</b>（今日值 ≥80% 时数字变黄、≥95% 变红，与进度条口径一致）</span></div>
+    </div>
+    <div class="limit">
+      <div class="limit-trend hl" style="margin:0"><svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 8-6-16-3 8H2"/></svg><span>今日 <b style="color:var(--bad)">96%</b>（示例：红色态）</span></div>
+    </div>
+    <div class="limit">
+      <p class="note" style="margin:0">无历史数据（如查询一直失败）时，该行整体隐藏，不显示占位。</p>
+    </div>
+  </div>
+
+  <p class="note" style="margin-top:18px">确认方案后实施：删除柱状图渲染，新增 limit-trend 文字行；文案生成逻辑放 shared/history.js 并补单元测试；日均四舍五入取整。</p>
+</body>
+</html>

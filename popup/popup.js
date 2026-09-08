@@ -3,7 +3,7 @@
 
 import { nf, fmtTime, fmtRemain, pctColor, pctState, clampPct, daysLeft, fmtDate } from "../shared/format.js";
 import { LEVEL_NAMES, classifyWindow, THRESHOLDS } from "../shared/constants.js";
-import { lastDays, trendSlots } from "../shared/history.js";
+import { lastDays, describeTrend } from "../shared/history.js";
 import { validateSettingsImport } from "../shared/io.js";
 
 const $ = (id) => document.getElementById(id);
@@ -26,6 +26,16 @@ function shortError(e) { return e && e.message ? e.message : (e || "未知错误
 
 /* ---------- 额度卡片构建：动态文本一律 textContent/DOM 构建，仅静态 SVG 图标用 innerHTML ---------- */
 const CLOCK_SVG = '<svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+const ACTIVITY_SVG = '<svg class="ic" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 8-6-16-3 8H2"/></svg>';
+
+// 百分比数值节点：≥bad 红、≥warn 黄（与进度条同口径），其余文字色
+function pctNode(pct) {
+  const b = document.createElement("b");
+  b.textContent = `${Math.round(pct)}%`;
+  if (pct >= THRESHOLDS.bad) b.classList.add("bad");
+  else if (pct >= THRESHOLDS.warn) b.classList.add("warn");
+  return b;
+}
 
 // 用量行的一个分段：pre<strong>strong</strong>post
 function metaSeg(pre, strong, post = "") {
@@ -41,7 +51,7 @@ function metaSeg(pre, strong, post = "") {
 }
 
 // 卡片结构：名称+百分比 / 进度条（带 aria）/ 用量行 / 重置行 / 近 7 日趋势
-function buildCard({ name, pct, metaSegs, resetText, trend = [] }) {
+function buildCard({ name, pct, metaSegs, resetText, trend = null }) {
   const pctInt = Math.round(pct);
   const state = pctState(pct);
 
@@ -93,24 +103,32 @@ function buildCard({ name, pct, metaSegs, resetText, trend = [] }) {
   el.className = "limit";
   el.append(top, track, meta, reset);
 
-  // 近 7 日趋势：固定 7 槽位、最右为最新一天，无数据日淡显占位（装饰性，卡片文字已含当日数据）
-  const trendEl = document.createElement("div");
-  trendEl.className = "trend";
-  trendEl.setAttribute("aria-hidden", "true");
-  for (const e of trendSlots(trend)) {
-    const bar = document.createElement("i");
-    if (e) {
-      const p = clampPct(e.p);
-      bar.style.height = Math.max(8, Math.round(p)) + "%";
-      if (p >= THRESHOLDS.bad) bar.classList.add("bad");
-      else if (p >= THRESHOLDS.warn) bar.classList.add("warn");
-      bar.title = `${e.d} ${Math.round(p)}%`;
+  // 近 N 日趋势文字行（与重置行同构；无数据时整行隐藏）
+  if (trend) {
+    const trendEl = document.createElement("div");
+    trendEl.className = "limit-trend";
+    trendEl.setAttribute("aria-hidden", "true");
+    trendEl.innerHTML = ACTIVITY_SVG; // 静态图标常量
+    const text = document.createElement("span");
+    if (trend.avg === null) {
+      text.append("今日 ");
+      text.appendChild(pctNode(trend.today));
+      text.append("（首日记录）");
     } else {
-      bar.classList.add("off");
+      text.append(`近 ${trend.days} 日日均 `);
+      const avg = document.createElement("b");
+      avg.textContent = `${trend.avg}%`;
+      text.appendChild(avg);
+      const sep = document.createElement("span");
+      sep.className = "sep";
+      sep.textContent = "·";
+      text.appendChild(sep);
+      text.append("今日 ");
+      text.appendChild(pctNode(trend.today));
     }
-    trendEl.appendChild(bar);
+    trendEl.appendChild(text);
+    el.appendChild(trendEl);
   }
-  el.appendChild(trendEl);
   return el;
 }
 
@@ -130,7 +148,7 @@ function limitBar(limit, label, trend) {
   const resetText = limit.nextResetTime
     ? `${fmtRemain(limit.nextResetTime - Date.now())}后重置`
     : "";
-  return buildCard({ name: label, pct, metaSegs, resetText, trend });
+  return buildCard({ name: label, pct, metaSegs, resetText, trend: describeTrend(trend) });
 }
 
 /* ---------- OpenCode Go 额度卡片（与 GLM 同构） ---------- */
@@ -141,7 +159,7 @@ function goBar(w, trend) {
   const resetText = w.endTs
     ? `${fmtRemain(w.endTs - Date.now())}后重置`
     : "";
-  return buildCard({ name: w.name, pct, metaSegs, resetText, trend });
+  return buildCard({ name: w.name, pct, metaSegs, resetText, trend: describeTrend(trend) });
 }
 
 /* ---------- MCP ---------- */
