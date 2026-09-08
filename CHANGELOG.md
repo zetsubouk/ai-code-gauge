@@ -3,7 +3,7 @@
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
-## [Unreleased]
+## [1.5.0] - 2026-09-08
 
 ### Changed
 - 趋势展示改版（经设计确认）：取消柱状图，改为重置时间下一行的文字摘要——「近 N 日日均 X% · 今日 Y%」；仅 1 天数据显示「今日 X%（首日记录）」，无数据整行隐藏；今日值 ≥80%/≥95% 变黄/红，与进度条口径一致。文案逻辑落在 `shared/history.js describeTrend()` 并补单元测试。
