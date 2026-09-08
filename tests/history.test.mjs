@@ -52,8 +52,8 @@ test("trendSlots：固定 7 槽、左侧 null 占位、最右为最新一天", (
   assert.deepEqual(trendSlots([]), [null, null, null, null, null, null, null]);
   assert.deepEqual(trendSlots(null), [null, null, null, null, null, null, null]);
   // 单条数据（部署首日）→ 6 个占位 + 最右 1 条真实数据
-  const one = [{ d: "2026-09-08", p: 28 }];
-  assert.deepEqual(trendSlots(one), [null, null, null, null, null, null, one]);
+  const one = { d: "2026-09-08", p: 28 };
+  assert.deepEqual(trendSlots([one]), [null, null, null, null, null, null, one]);
   // 9 条 → 只取最近 7 条，无占位
   const nine = Array.from({ length: 9 }, (_, i) => ({ d: `d${i}`, p: i }));
   const slots = trendSlots(nine);
