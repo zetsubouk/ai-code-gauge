@@ -201,7 +201,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           return sendResponse({ ok: false, reason: "unknown" });
       }
     } catch (e) {
-      console.error("[glm-monitor] 后台处理消息出错:", e);
+      console.error("[ai-code-gauge] 后台处理消息出错:", e);
       return sendResponse({ ok: false, error: String((e && e.message) || e) });
     }
   })();

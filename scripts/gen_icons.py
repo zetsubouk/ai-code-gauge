@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Generate AI 码表 (CodeGauge) extension icons.
+"""Generate AI Coding Gauge extension icons.
 
 设计（品牌方案 A）：深色渐变圆角底 + 240° 仪表弧线（蓝紫渐变色近似）+ 指针 + 轴心，
 供应商中立，与徽章百分比隐喻一致。仅依赖 Pillow。

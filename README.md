@@ -120,6 +120,7 @@ ai-code-gauge/
 ├── icons/                     # 扩展图标（16/32/48/128）
 ├── docs/                      # API.md 接口契约 / INSTALL.md 安装指南 / screenshots 截图
 ├── scripts/                   # 图标生成 / 打包 / 接口冒烟测试
+├── design/                    # 品牌与 UI 设计稿（html 演示页）
 └── package.json               # 开发脚本
 ```
 

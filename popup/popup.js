@@ -212,7 +212,6 @@ async function doRefresh() {
   try {
     const resp = await chrome.runtime.sendMessage({ type: "refresh" });
     if (resp && resp.data) render(resp.data);
-    else if (resp && resp.reason === "no_key") showSetup();
     else if (resp && resp.error) {
       render({ fetchedAt: Date.now(), providers: {}, errors: [{ provider: "glm", message: "刷新失败：" + resp.error, kind: "server" }] });
     }
