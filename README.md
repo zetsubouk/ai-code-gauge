@@ -8,7 +8,7 @@
 
 实时查看智谱 **GLM（中国大陆版）** 与 **OpenCode Go** 的 Coding Plan 用量：5 小时 / 每周 / 每月（MCP）额度，工具栏徽章随时掌握当前 5 小时使用占比。
 
-![Chrome](https://img.shields.io/badge/Chrome%20(Chromium)-96%2B-blue) ![Manifest](https://img.shields.io/badge/Manifest-V3-9cf) ![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/badge/Version-1.4.0-blue)
+![Chrome](https://img.shields.io/badge/Chrome%20(Chromium)-96%2B-blue) ![Manifest](https://img.shields.io/badge/Manifest-V3-9cf) ![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/badge/Version-1.5.0-blue)
 
 [简介](#简介) · [截图](#截图) · [安装](#安装) · [配置](#配置) · [隐私与安全](#隐私与安全) · [开发](#开发)
 
@@ -122,7 +122,7 @@ ai-code-gauge/
 ├── popup/                     # 弹窗 UI（html/css/js）
 ├── shared/                    # api.js / constants.js / go.js / format.js
 ├── icons/                     # 扩展图标（16/32/48/128）
-├── docs/                      # API.md 接口契约 / INSTALL.md 安装指南 / screenshots 截图
+├── docs/                      # API.md 接口契约 / INSTALL.md 安装指南 / ROADMAP.md 路线图 / screenshots 截图
 ├── scripts/                   # 图标生成 / 打包 / 接口冒烟测试
 ├── design/                    # 品牌与 UI 设计稿（html 演示页）
 └── package.json               # 开发脚本
