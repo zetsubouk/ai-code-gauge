@@ -134,6 +134,7 @@ ai-code-gauge/
 npm run test:api   # 接口冒烟测试（需 BIGMODEL_KEY 环境变量）
 npm run icons      # 重新生成图标
 npm run build      # 打包发布 zip 到 dist/
+npm run release -- 1.5.1 --push --github  # 发版：同步版本号/CHANGELOG + tag + 推送 + 建 Release
 ```
 
 接口契约与实测数据结构见 [docs/API.md](docs/API.md)。

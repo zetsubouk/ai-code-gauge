@@ -5,6 +5,9 @@
 
 ## [未发布]
 
+### Added
+- **发布脚本化**：`scripts/release.py`（`npm run release -- <版本号>`）一键发版——校验分支/工作区/tag 占用与「未发布」区内容，先跑测试再同步 manifest / package.json / CHANGELOG 三处版本号，提交 `chore(release): vX.Y.Z` 并打轻量 tag；`--push` 推送 main 与 tag 触发 CI 打包，`--github` 本地构建 zip 并创建 GitHub Release（正文取 CHANGELOG 该版本段落 + 固定安装页脚）。
+
 ### Fixed
 - **刷新失败不再清空面板**：某供应商拉取失败时保留其上一次成功数据并标记 `stale`（快照内各供应商新增 `fetchedAt` 记录实际拉取时间），弹窗在该栏显示黄色弱提示「本次刷新失败，显示 X 拉取的数据」，顶部更新时间改为按所展示供应商的最后成功拉取时间计算；首次拉取即失败时维持原空占位行为。降级的 stale 数据不写入当日历史快照、不触发阈值通知，徽章仍只反映本次刷新结果。
 - **徽章口径与面板统一**：工具栏徽章改用与弹窗同源的窗口判定（新增 `shared/constants.js` 的 `headlineLimit()`，优先 5 小时、回退每周、兜底首个 CREDIT_LIMIT），修复原先取「nextResetTime 最早的一个 CREDIT_LIMIT」导致徽章数字与面板 5 小时额度对不上的问题。

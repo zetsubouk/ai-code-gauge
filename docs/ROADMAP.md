@@ -17,8 +17,8 @@
 
 - **Chrome Web Store 上架**：商店文案、隐私问卷（仅本机存储、无追踪）、
   隐私政策页（可用本仓库 [SECURITY.md](SECURITY.md) / README）；上架链接回填 README。
-- **发布脚本化**：`scripts/release.py` 一键同步 manifest / package.json / CHANGELOG 版本号并打 tag，
-  触发 CI 产出 zip（见 `.github/workflows/ci.yml` build job）。
+  发版用 `npm run release -- <版本号> --push --github` 一键完成
+  （`scripts/release.py`：同步版本号/CHANGELOG、打 tag 触发 CI、建 GitHub Release）。
 - **维护者待办**：仓库 Settings → Code security 启用 Private vulnerability reporting
   （SECURITY.md 已指引该渠道）。
 
