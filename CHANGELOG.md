@@ -3,7 +3,7 @@
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
-## [未发布]
+## [1.5.1] - 2026-09-09
 
 ### Added
 - **发布脚本化**：`scripts/release.py`（`npm run release -- <版本号>`）一键发版——校验分支/工作区/tag 占用与「未发布」区内容，先跑测试再同步 manifest / package.json / CHANGELOG 三处版本号，提交 `chore(release): vX.Y.Z` 并打轻量 tag；`--push` 推送 main 与 tag 触发 CI 打包，`--github` 本地构建 zip 并创建 GitHub Release（正文取 CHANGELOG 该版本段落 + 固定安装页脚）。
