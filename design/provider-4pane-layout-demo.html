@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>四供应商布局与双模式供应商 Demo — AI Coding Gauge</title>
+<style>
+  /* ===== 以下样式复制自 popup/popup.css，保证与真实 UI 一致 ===== */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0c0f15;
+    --panel: #151b28;
+    --panel-2: #1c2334;
+    --line: rgba(255,255,255,.07);
+    --text: #e9edf6;
+    --muted: #99a1b3;
+    --accent: #5b77ff;
+    --accent-2: #8a6bff;
+    --ok: #2fd57c;
+    --warn: #f5a623;
+    --bad: #ff5c5c;
+    --track: #232d40;
+  }
+  body {
+    font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text);
+    padding: 24px; max-width: 860px; -webkit-font-smoothing: antialiased;
+  }
+  h1 { font-size: 16px; margin-bottom: 4px; }
+  .sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+  h2 { font-size: 13.5px; margin: 24px 0 10px; padding-left: 9px; border-left: 3px solid var(--accent); }
+  .note { font-size: 12px; color: var(--muted); margin: 0 0 10px; }
+  .note b { color: var(--text); }
+
+  /* ===== 弹窗整体 mock（模拟真实 popup 尺寸） ===== */
+  .popup {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 14px;
+    overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,.5);
+  }
+  .popup.w4 { width: 560px; }   /* 四供应商 2×2 */
+  .popup.w1 { width: 360px; }   /* 单列堆叠 */
+  .brand-strip { height: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-2), #4f8cff); }
+  .head { display: flex; align-items: center; gap: 8px; padding: 9px 13px 7px; }
+  .head .brand { font-size: 12.5px; font-weight: 800; letter-spacing: .2px; }
+  .head .brand small { font-size: 10.5px; font-weight: 600; color: var(--muted); margin-left: 6px; }
+  .head .spacer { flex: 1; }
+  .head .updated { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .foot { display: flex; align-items: center; gap: 8px; padding: 7px 13px 9px; border-top: 1px solid var(--line);
+    font-size: 10.5px; color: var(--muted); }
+
+  /* ===== 面板网格：2×2 与 1×N ===== */
+  .panes { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; padding: 0 11px 11px; }
+  .panes.stack { grid-template-columns: 1fr; }
+  .pane { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px 9px; min-width: 0; }
+  .pane-title { font-size: 12.5px; font-weight: 700; margin: 0 0 9px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .pdot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .pdot.glm { background: var(--accent-2); }
+  .pdot.go { background: #4f8cff; }
+  .pdot.ds { background: #4d6bfe; }
+  .pdot.mimo { background: #ff6900; }
+  .plan-badge { padding: 1px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; color: #fff;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+  .plan-expiry { font-size: 11px; font-weight: 600; color: var(--muted); }
+  .state-pill { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 999px; flex: none; }
+  .state-pill.ok { color: var(--ok); border: 1px solid rgba(47,213,124,.4); }
+  .limits { display: flex; flex-direction: column; gap: 8px; }
+  .limit { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px 11px; min-width: 0; }
+  .limit-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .limit-name { font-weight: 600; font-size: 12.5px; }
+  .limit-pct { font-size: 22px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  .limit-pct small { font-size: 11px; font-weight: 600; color: var(--muted); margin-left: 1px; }
+  .limit-pct.warn { color: var(--warn); }
+  .limit-pct.bad { color: var(--bad); }
+  .limit-track { height: 7px; border-radius: 4px; background: var(--track); overflow: hidden; margin: 8px 0 7px; }
+  .limit-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+  .limit-fill.warn { background: linear-gradient(90deg, #f5a623, #ff8a2b); }
+  .limit-fill.bad { background: linear-gradient(90deg, #ff5c5c, #d32f2f); }
+  .limit-meta { font-size: 11px; color: var(--muted); }
+  .limit-meta b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .limit-meta .sep { margin: 0 4px; opacity: .6; }
+  .limit-reset { display: flex; align-items: center; gap: 4px; margin-top: 4px;
+    font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .limit-reset b { color: var(--text); }
+  .ic { flex: none; opacity: .8; }
+  .limit-trend { display: flex; align-items: center; gap: 4px; margin-top: 3px;
+    font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .limit-trend b { color: var(--text); font-weight: 600; }
+  .limit-trend b.warn { color: var(--warn); }
+  .limit-trend .sep { opacity: .6; margin: 0 1px; }
+  .tag { display: inline-block; font-size: 10px; color: var(--accent); border: 1px solid rgba(91,119,255,.45);
+    border-radius: 999px; padding: 0 7px; }
+  .tag.exp { color: var(--warn); border-color: rgba(245,166,35,.45); }
+  .mcp-row { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--muted); padding: 2px 1px; }
+  .mcp-row b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+  /* 识别规则表 */
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 6px; }
+  .cmp th, .cmp td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .cmp th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+  .cmp td b { color: var(--text); }
+  .kbd { font-family: ui-monospace, Consolas, monospace; font-size: 11px; background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+
+  /* 设置行（双模式选择） */
+  .setup { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 15px; width: 560px; }
+  .prov-row { display: flex; align-items: flex-start; gap: 9px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .prov-row:last-of-type { border-bottom: none; }
+  .prov-row input[type="checkbox"] { margin-top: 3px; accent-color: var(--accent); }
+  .prov-main { flex: 1; min-width: 0; }
+  .prov-name { font-weight: 700; font-size: 12.5px; display: flex; align-items: center; gap: 7px; }
+  .prov-type { font-size: 10.5px; color: var(--muted); }
+  .prov-fields { margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .prov-fields input[type="text"] { background: var(--panel-2); border: 1px solid var(--line); border-radius: 7px;
+    color: var(--text); font: 12px/1.4 inherit; padding: 5px 8px; min-width: 150px; }
+  .prov-fields select { background: var(--panel-2); border: 1px solid var(--line); border-radius: 7px; color: var(--text); padding: 5px 6px; font-size: 12px; }
+  .mode-note { font-size: 10.5px; color: var(--muted); margin-top: 4px; }
+  .cols { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+  <h1>四供应商布局 × 双模式供应商 Demo</h1>
+  <p class="sub">模拟数据。验证两件事：① 同时启用 4 家供应商时的分栏排版；② 「套餐 + 余额」双模式供应商（小米 MiMo 等）的模式识别与设置交互。</p>
+
+  <h2>设计决策：双模式供应商怎么识别？</h2>
+  <p class="note">推荐<b>「按 API Key 自动识别 + 设置页手动覆盖」</b>：MiMo 官方文档明确按量 Key 为 <span class="kbd">sk-</span> 前缀、Token Plan Key 为 <span class="kbd">tp-</span> 前缀（两者 Base URL 也不同），Key 本身携带计费模式，自动识别零负担；无前缀区分的厂商退化为手动选择。注册表契约相应扩展：<span class="kbd">modes</span> 声明支持的额度形态，<span class="kbd">detectMode(cfg)</span> 按 Key 判定，卡片模板按模式分发。</p>
+  <table class="cmp">
+    <tr><th>供应商</th><th>支持形态</th><th>自动识别规则</th><th>识别后行为</th></tr>
+    <tr><td><b>智谱 GLM</b></td><td>套餐</td><td>无需识别（仅套餐监控）</td><td>5 小时 / 每周 / MCP 额度卡</td></tr>
+    <tr><td><b>OpenCode Go</b></td><td>套餐</td><td>无需识别</td><td>5 小时 / 每周 / 每月额度卡</td></tr>
+    <tr><td><b>DeepSeek</b></td><td>余额</td><td>所有 Key 均为按量</td><td>余额 + 今日消耗卡</td></tr>
+    <tr><td><b>Xiaomi MiMo</b></td><td>套餐 + 余额</td><td><span class="kbd">tp-</span> → Token Plan；<span class="kbd">sk-</span> → 按量余额</td><td>套餐 Credit 卡 或 余额卡；余额接口待抓包确认</td></tr>
+    <tr><td>后续厂商</td><td>按声明</td><td>有前缀规则则自动，否则默认首个形态</td><td>设置页「额度类型」下拉可覆盖</td></tr>
+  </table>
+
+  <h2>设置交互：MiMo 行的「额度类型」选择（默认自动）</h2>
+  <div class="setup">
+    <div class="prov-row">
+      <input type="checkbox" checked />
+      <div class="prov-main">
+        <div class="prov-name"><i class="pdot mimo"></i>Xiaomi MiMo<span class="prov-type">套餐 + 余额双模式 · 实验性</span></div>
+        <div class="prov-fields">
+          <input type="text" value="tp-••••••••••••••••••" />
+          <select><option selected>额度类型：自动识别</option><option>Token Plan（套餐）</option><option>按量（余额）</option></select>
+        </div>
+        <div class="mode-note">已识别：<b style="color:var(--ok)">Token Plan · Pro</b>（依据 tp- 前缀；切换 Key 后自动重判）</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>方案一（推荐）：四供应商 2×2 分栏<span class="tag" style="margin-left:8px">560px · 两行 · 无横向滚动</span></h2>
+  <p class="note">沿用双栏网格，四家时排成两行两列；面板顺序 = 设置中的启用顺序。徽章循环 4 条（间隔仍 5–60 秒可设）。Chrome 弹窗上限 800×600：560px 宽完全容纳，高度约 590px 贴近上限——实现时卡片内边距收紧一档（本 demo 已按收紧后数值渲染），超限时弹窗内部滚动。</p>
+  <div class="popup w4">
+    <div class="brand-strip"></div>
+    <div class="head">
+      <span class="brand">AI Coding Gauge<small>用量监控</small></span>
+      <span class="spacer"></span>
+      <span class="updated">14:32 更新</span>
+    </div>
+    <div class="panes">
+      <section class="pane">
+        <div class="pane-title"><i class="pdot glm"></i>智谱 GLM<span class="plan-badge">Lite</span><span class="plan-expiry">到期 2026-12-01</span></div>
+        <div class="limits">
+          <div class="limit">
+            <div class="limit-top"><span class="limit-name">5 小时</span><span class="limit-pct">32<small>%</small></span></div>
+            <div class="limit-track"><div class="limit-fill" style="width:32%"></div></div>
+            <div class="limit-meta">已用 <b>643</b> / 2,000 积分<span class="sep">·</span>剩余 <b>1,356</b></div>
+            <div class="limit-reset"><svg class="ic" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>1 小时 26 分后重置</span></div>
+            <div class="limit-trend"><svg class="ic" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 8-6-16-3 8H2"/></svg><span>近 7 日日均 <b>35%</b><span class="sep">·</span>今日 <b>32%</b></span></div>
+          </div>
+          <div class="limit">
+            <div class="limit-top"><span class="limit-name">每周</span><span class="limit-pct">28<small>%</small></span></div>
+            <div class="limit-track"><div class="limit-fill" style="width:28%"></div></div>
+            <div class="limit-meta">已用 <b>2,812</b> / 10,000 积分<span class="sep">·</span>剩余 <b>7,188</b></div>
+            <div class="limit-reset"><svg class="ic" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>1 天后重置</span></div>
+          </div>
+          <div class="mcp-row"><span>MCP 调用 · 本月</span><span><b>1,204</b> / 3,000 次</span></div>
+        </div>
+      </section>
+      <section class="pane">
+        <div class="pane-title"><i class="pdot mimo"></i>Xiaomi MiMo<span class="plan-badge">Pro</span><span class="plan-expiry">到期 2026-10-15</span><span class="tag exp" style="margin-left:auto">实验性</span></div>
+        <div class="limits">
+          <div class="limit">
+            <div class="limit-top"><span class="limit-name">套餐额度</span><span class="limit-pct">42<small>%</small></span></div>
+            <div class="limit-track"><div class="limit-fill" style="width:42%"></div></div>
+            <div class="limit-meta">已用 <b>1,915</b> / 4,560 亿 Credits<span class="sep">·</span>剩余 <b>2,645</b></div>
+            <div class="limit-reset"><svg class="ic" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>21 天 3 小时后重置</span></div>
+            <div class="limit-trend"><svg class="ic" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 8-6-16-3 8H2"/></svg><span>近 7 日日均 <b>38%</b><span class="sep">·</span>今日 <b>42%</b></span></div>
+          </div>
+          <div class="limit">
+            <div class="limit-top"><span class="limit-name">模型共享额度</span><span class="limit-pct">42<small>%</small></span></div>
+            <div class="limit-track"><div class="limit-fill" style="width:42%"></div></div>
+            <div class="limit-meta">mimo-v2-pro / omni / tts 共用同一 Credit 池</div>
+            <div class="limit-reset"><svg class="ic" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>输入/输出/缓存 token 按系数折算</span></div>
+          </div>
+        </div>
+      </section>
+      <section class="pane">
+        <div class="pane-title"><i class="pdot ds"></i>DeepSeek<span class="state-pill ok">可用</span></div>
+        <div class="limits">
+          <div class="limit">
+            <div class="limit-top"><span class="limit-name">账户余额</span><span class="limit-pct">¥110.00</span></div>
+            <div class="limit-track"><div class="limit-fill" style="width:9%"></div></div>
+            <div class="limit-meta">充值 <b>¥100.00</b><span class="sep">·</span>赠金 <b>¥10.00</b><span class="sep">·</span>扣费优先赠金</div>
+            <div class="limit-reset"><svg class="ic" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v8M8 12h8"/><circle cx="12" cy="12" r="9"/></svg><span>按量付费 · 无重置周期</span></div>
+          </div>
+          <div class="limit">
+            <div class="limit-top"><span class="limit-name">今日消耗</span><span class="limit-pct">¥12.40</span></div>
+            <div class="limit-track"><div class="limit-fill" style="width:11%"></div></div>
+            <div class="limit-meta">占当前余额 <b>11%</b><span class="sep">·</span>近 7 日日均 <b>¥9.80</b></div>
+            <div class="limit-reset"><svg class="ic" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="9"/></svg><span>按日均推算可用约 <b>11 天</b></span></div>
+          </div>
+        </div>
+      </section>
+      <section class="pane">
+        <div class="pane-title"><i class="pdot go"></i>OpenCode Go<span class="plan-expiry">到期 2026-09-17</span></div>
+        <div class="limits">
+          <div class="limit">
+            <div class="limit-top"><span class="limit-name">5 小时</span><span class="limit-pct">6<small>%</small></span></div>
+            <div class="limit-track"><div class="limit-fill" style="width:6%"></div></div>
+            <div class="limit-meta">参考限额 <b>$12</b></div>
+            <div class="limit-reset"><svg class="ic" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>2 小时 29 分后重置</span></div>
+            <div class="limit-trend"><svg class="ic" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 8-6-16-3 8H2"/></svg><span>今日 <b>6%</b>（首日记录）</span></div>
+          </div>
+          <div class="limit">
+            <div class="limit-top"><span class="limit-name">每月</span><span class="limit-pct warn">53<small>%</small></span></div>
+            <div class="limit-track"><div class="limit-fill warn" style="width:53%"></div></div>
+            <div class="limit-meta">参考限额 <b>$60</b></div>
+            <div class="limit-reset"><svg class="ic" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>8 天 23 小时后重置</span></div>
+            <div class="limit-trend"><svg class="ic" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 8-6-16-3 8H2"/></svg><span>近 6 日日均 <b>46%</b><span class="sep">·</span>今日 <b class="warn">53%</b></span></div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <div class="foot"><span>每 10 分钟自动刷新</span><span class="spacer" style="flex:1"></span><span>图标循环 4 家 · 每 10 秒</span></div>
+  </div>
+
+  <h2>方案二（对比）：单列纵向堆叠<span class="tag" style="margin-left:8px">360px · 需滚动</span></h2>
+  <p class="note">保持单栏 360px 宽，四家依次向下堆叠。宽度最舒适（卡片不压缩），但总高约 1,050px 远超 Chrome 弹窗 600px 上限，<b>必须滚动</b>才能看全四家——信息一目性差，仅作为对比保留。</p>
+  <div class="popup w1">
+    <div class="brand-strip"></div>
+    <div class="head">
+      <span class="brand">AI Coding Gauge<small>用量监控</small></span>
+      <span class="spacer"></span>
+      <span class="updated">14:32 更新</span>
+    </div>
+    <div class="panes stack">
+      <section class="pane">
+        <div class="pane-title"><i class="pdot glm"></i>智谱 GLM<span class="plan-badge">Lite</span><span class="plan-expiry">到期 2026-12-01</span></div>
+        <div class="limits">
+          <div class="limit">
+            <div class="limit-top"><span class="limit-name">5 小时</span><span class="limit-pct">32<small>%</small></span></div>
+            <div class="limit-track"><div class="limit-fill" style="width:32%"></div></div>
+            <div class="limit-meta">已用 <b>643</b> / 2,000 积分<span class="sep">·</span>剩余 <b>1,356</b></div>
+            <div class="limit-reset"><svg class="ic" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>1 小时 26 分后重置 · 近 7 日日均 <b>35%</b></span></div>
+          </div>
+        </div>
+      </section>
+      <section class="pane">
+        <div class="pane-title"><i class="pdot mimo"></i>Xiaomi MiMo<span class="plan-badge">Pro</span><span class="plan-expiry">到期 2026-10-15</span><span class="tag exp" style="margin-left:auto">实验性</span></div>
+        <div class="limits">
+          <div class="limit">
+            <div class="limit-top"><span class="limit-name">套餐额度</span><span class="limit-pct">42<small>%</small></span></div>
+            <div class="limit-track"><div class="limit-fill" style="width:42%"></div></div>
+            <div class="limit-meta">已用 <b>1,915</b> / 4,560 亿 Credits<span class="sep">·</span>剩余 <b>2,645</b></div>
+            <div class="limit-reset"><svg class="ic" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>21 天 3 小时后重置</span></div>
+          </div>
+        </div>
+      </section>
+      <section class="pane">
+        <div class="pane-title"><i class="pdot ds"></i>DeepSeek<span class="state-pill ok">可用</span></div>
+        <div class="limits">
+          <div class="limit">
+            <div class="limit-top"><span class="limit-name">账户余额</span><span class="limit-pct">¥110.00</span></div>
+            <div class="limit-track"><div class="limit-fill" style="width:9%"></div></div>
+            <div class="limit-meta">充值 <b>¥100.00</b><span class="sep">·</span>赠金 <b>¥10.00</b></div>
+            <div class="limit-reset"><svg class="ic" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v8M8 12h8"/><circle cx="12" cy="12" r="9"/></svg><span>今日消耗 <b>¥12.40</b> · 推算可用约 <b>11 天</b></span></div>
+          </div>
+        </div>
+      </section>
+      <section class="pane">
+        <div class="pane-title"><i class="pdot go"></i>OpenCode Go<span class="plan-expiry">到期 2026-09-17</span></div>
+        <div class="limits">
+          <div class="limit">
+            <div class="limit-top"><span class="limit-name">5 小时</span><span class="limit-pct">6<small>%</small></span></div>
+            <div class="limit-track"><div class="limit-fill" style="width:6%"></div></div>
+            <div class="limit-meta">参考限额 <b>$12</b></div>
+            <div class="limit-reset"><svg class="ic" viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>2 小时 29 分后重置</span></div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <div class="foot"><span>每 10 分钟自动刷新</span><span style="flex:1"></span><span>图标循环 4 家 · 每 10 秒</span></div>
+  </div>
+  <p class="note" style="margin-top:8px">（方案二仅示意首屏可见的前几家，实际滚动到底部才能看到 Go；卡片已做信息合并压缩仍超高。）</p>
+
+  <h2>布局规则汇总（实现时的自适应口径）</h2>
+  <p class="note">
+    1 家 = 单栏 360px；2 家 = 双栏 560px（现状）；<b>3–4 家 = 2×2 网格 560px</b>（3 家时最后一格留空或跨列）；&gt;4 家 = 2×N 多行，弹窗内部滚动。<br />
+    徽章循环条数 = 启用供应商数，逻辑不变；阈值提醒按各供应商当前模式的口径触发（套餐 = 窗口百分比 ≥95%，余额 = 余额 ≤ 设定金额）。<br />
+    注册表扩展：<span class="kbd">modes: ["plan","balance"]</span> + <span class="kbd">detectMode(cfg)</span>（Key 前缀判定，可被设置覆盖）；历史快照按 <span class="kbd">供应商.模式.窗口</span> 分键存储。
+  </p>
+</body>
+</html>
