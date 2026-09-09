@@ -3,7 +3,7 @@
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
-## [未发布]
+## [1.6.0] - 2026-09-09
 
 ### Added
 - **三家供应商布局（方案一）**：同时呈现三家时，排序末位的面板横跨双列、卡内部并排（`spanTargetId()` 契约 + `.pane.span2`），消除 2×2 网格缺角；1/2/4 家布局不变，与手动排序天然组合（↑↓ 可决定谁占据底部宽位）。
