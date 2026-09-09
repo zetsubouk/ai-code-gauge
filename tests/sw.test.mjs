@@ -80,6 +80,7 @@ let goMode = "ok";
 let glmH5Pct = null; // 覆盖 5h 窗口百分比（通知阈值测试用）
 let glmCalls = 0; // GLM 拉取次数（并发守卫测试用）
 let glmGate = null; // 置为 promise 时挂起 GLM 响应，制造并发窗口
+let dsMode = "ok"; // ok | auth_error
 globalThis.fetch = async (url) => {
   const u = String(url);
   if (u.includes("bigmodel.cn")) {
@@ -93,6 +94,10 @@ globalThis.fetch = async (url) => {
   if (u.includes("opencode.ai")) {
     if (goMode === "auth_error") return jsonResponse({ type: "error", error: { type: "AuthError", message: "Missing API key." } }, 401);
     return jsonResponse(GO_OK);
+  }
+  if (u.includes("deepseek.com")) {
+    if (dsMode === "auth_error") return jsonResponse({ error: { message: "Invalid key" } }, 401);
+    return jsonResponse({ is_available: true, balance_infos: [{ currency: "CNY", total_balance: "56.21", granted_balance: "6.21", topped_up_balance: "50.00" }] });
   }
   throw new Error("unexpected url: " + u);
 };
@@ -298,4 +303,81 @@ test("阈值提醒：stale 降级数据不触发通知", async () => {
   assert.equal(notifyCalls.length, 0);
   store.notify = false;
   delete store.lastData;
+});
+
+test("DeepSeek 余额型：日账本推导今日消耗、快照结构与历史记录", async () => {
+  dsMode = "ok";
+  store.providers = {
+    glm: { enabled: false, apiKey: "glm-key", planExpiry: "" },
+    go: { enabled: false, apiKey: "" },
+    deepseek: { enabled: true, apiKey: "ds-key" },
+  };
+  delete store.lastData;
+  // 预置今日账本：起点 60 → 今日消耗 = 60 - 56.21 = 3.79
+  const today = new Date();
+  const day = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  store.balanceLedger = { deepseek: { day, start: 60 } };
+
+  const resp = await send({ type: "refresh" });
+  assert.equal(resp.ok, true);
+  const ds = resp.data.providers.deepseek;
+  assert.equal(ds.total, 56.21);
+  assert.equal(ds.granted, 6.21);
+  assert.equal(ds.spentToday, 3.79);
+  assert.equal(ds.dayStart, 60);
+  // 徽章：今日消耗 3.79/60 ≈ 6.32%（原始值入列，显示取整为 6%）
+  assert.ok(Math.abs(store.badgeItems[0].pct - 6.3167) < 0.001);
+  // 历史按日记录余额（以分为单位，避免取整丢精度）
+  assert.equal(store.history.deepseek.balance.at(-1).p, 5621);
+});
+
+test("DeepSeek 余额回升（充值）重置今日起点；Key 失效走 stale 降级", async () => {
+  dsMode = "ok";
+  store.providers = {
+    glm: { enabled: false, apiKey: "glm-key", planExpiry: "" },
+    go: { enabled: false, apiKey: "" },
+    deepseek: { enabled: true, apiKey: "ds-key" },
+  };
+  delete store.lastData;
+  // 账本起点 50 高于当前余额 56.21 → 视为充值，起点重置为 56.21
+  const today = new Date();
+  const day = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  store.balanceLedger = { deepseek: { day, start: 50 } };
+  let resp = await send({ type: "refresh" });
+  assert.equal(resp.data.providers.deepseek.spentToday, 0);
+  assert.equal(resp.data.providers.deepseek.dayStart, 56.21);
+
+  // Key 失效：有上次成功数据 → stale 保留；余额不足提醒条件不因 stale 触发
+  dsMode = "auth_error";
+  resp = await send({ type: "refresh" });
+  assert.equal(resp.ok, false);
+  assert.equal(resp.data.errors[0].provider, "deepseek");
+  assert.equal(resp.data.errors[0].kind, "invalid_key");
+  const ds = resp.data.providers.deepseek;
+  assert.equal(ds.stale, true);
+  assert.equal(ds.total, 56.21);
+});
+
+test("providerOrder 决定徽章循环顺序", async () => {
+  glmMode = "ok"; goMode = "ok"; dsMode = "ok";
+  store.providers = {
+    glm: { enabled: true, apiKey: "glm-key", planExpiry: "" },
+    go: { enabled: true, apiKey: "go-key" },
+    deepseek: { enabled: true, apiKey: "ds-key" },
+  };
+  // 显式账本起点，保证 deepseek 徽章值可预期（3.79/60 ≈ 6%）
+  const today = new Date();
+  const day = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  store.balanceLedger = { deepseek: { day, start: 60 } };
+  store.providerOrder = ["deepseek", "go", "glm"];
+  badge.texts = []; badge.colors = [];
+  const resp = await send({ type: "settingsChanged" });
+  assert.equal(resp.ok, true);
+  // 顺序：deepseek(3.79/60≈6.3%) → go(30) → glm(20)；徽章存原始值、显示时才取整（与 GLM 口径一致）
+  const [dsLine, goLine, glmLine] = store.badgeItems.map((i) => i.pct);
+  assert.ok(Math.abs(dsLine - 6.3167) < 0.001, `deepseek 徽章 ${dsLine}`);
+  assert.equal(goLine, 30);
+  assert.equal(glmLine, 20);
+  assert.equal(badge.texts.at(-1), "6%"); // 首位为 deepseek（显示取整）
+  store.providerOrder = [];
 });

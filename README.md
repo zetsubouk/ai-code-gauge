@@ -6,7 +6,7 @@
 
 **多供应商 AI Coding Plan 用量监控面板（Chrome 扩展）**
 
-实时查看智谱 **GLM（中国大陆版）** 与 **OpenCode Go** 的 Coding Plan 用量：5 小时 / 每周 / 每月（MCP）额度，工具栏徽章随时掌握当前 5 小时使用占比。
+实时查看智谱 **GLM（中国大陆版）** 与 **OpenCode Go** 的 Coding Plan 用量（5 小时 / 每周 / 每月额度），以及 **DeepSeek** 账户余额与今日消耗；工具栏徽章随时掌握当前供应商的用量占比，供应商**顺序可自定义**。
 
 ![Chrome](https://img.shields.io/badge/Chrome%20(Chromium)-96%2B-blue) ![Manifest](https://img.shields.io/badge/Manifest-V3-9cf) ![License](https://img.shields.io/badge/License-MIT-green) ![Version](https://img.shields.io/badge/Version-1.5.0-blue)
 
@@ -31,6 +31,11 @@
 - **rolling 5 小时 / 每周 / 每月** 三条窗口用量与重置时间（官方 `/zen/go/v1/usage` 接口）
 - **当月套餐到期日**自动推算：由每月额度的自动重置时间计算，临近到期变色提醒
 
+### DeepSeek（`api.deepseek.com`，按量付费）
+
+- **账户余额**大数字展示：充值 / 赠金构成，官方 `is_available` 状态药丸（余额不足变红）
+- **今日消耗**与近 7 日日均消耗（本地按日差额推导），按日均推算**可用天数**，不足 1 天变红提醒
+
 ### 通用
 
 - 两个供应商可**复选启用**，同时启用时面板**分栏**显示；工具栏图标（单行大字号）**循环切换**显示两家 5 小时用量百分比
@@ -44,8 +49,9 @@
 
 ## 功能特性
 
-- [x] 多供应商（智谱 GLM / OpenCode Go）复选 + 各自 API Key
-- [x] 分栏显示双供应商用量；单个供应商时仅显示该家
+- [x] 多供应商（智谱 GLM / OpenCode Go / DeepSeek）复选 + 各自 API Key
+- [x] 供应商**手动排序**（设置页 ↑↓ 调整，面板分栏与徽章循环按此顺序）
+- [x] 分栏显示多供应商用量；面板顺序随设置排列
 - [x] 循环切换徽章（双供应商时图标循环显示两家 5h 百分比，间隔可设置）
 - [x] 5 小时 / 每周 / 每月额度横向进度条（已用%、已用/总额、剩余、重置倒计时）
 - [x] 套餐等级 + 到期日期显示（到期 ≤7 天变黄、已过期变红）
@@ -94,11 +100,13 @@
 
 1. **GLM API Key**：到 [bigmodel.cn](https://open.bigmodel.cn/) 后台「API Keys」复制（与你在 Claude Code / ZCode 等工具中配置的密钥一致）。
 2. **OpenCode Go API Key**（可选）：勾选 OpenCode Go 并填入 opencode.ai 的 API Key。
-3. **套餐到期日期**（选填，GLM）：填写你的订阅到期日，将显示在套餐等级后，临近到期会有颜色提醒。
-4. **自动刷新间隔**：1–30 分钟。
-5. **图标循环切换间隔**（双供应商时）：5–60 秒。
-6. **额度系统提醒**（可选）：开启后任一额度窗口 ≥95% 时发送系统通知，同一窗口 6 小时冷却。
-7. 保存后面板自动查询并展示。设置页还提供**配置导出 / 导入**（JSON，API Key 默认不导出）。
+3. **DeepSeek API Key**（可选）：勾选 DeepSeek 并填入 [platform.deepseek.com](https://platform.deepseek.com/) 的 API Key，监控账户余额与消耗速度。
+4. **套餐到期日期**（选填，GLM）：填写你的订阅到期日，将显示在套餐等级后，临近到期会有颜色提醒。
+5. **供应商排序**：设置页每个供应商右侧的 ↑↓ 按钮调整面板排列与徽章循环顺序。
+6. **自动刷新间隔**：1–30 分钟。
+7. **图标循环切换间隔**（多供应商时）：5–60 秒。
+8. **额度系统提醒**（可选）：开启后任一额度窗口 ≥95%（或 DeepSeek 官方判定余额不足）时发送系统通知，同一窗口 6 小时冷却。
+9. 保存后面板自动查询并展示。设置页还提供**配置导出 / 导入**（JSON，API Key 默认不导出）。
 
 密钥只存本机 `chrome.storage.local`，仅发送给对应供应商官方监控接口。
 
@@ -131,7 +139,7 @@ ai-code-gauge/
 ## 开发
 
 ```bash
-npm run test:api   # 接口冒烟测试（需 BIGMODEL_KEY 环境变量）
+npm run test:api   # 接口冒烟测试（需 BIGMODEL_KEY / GO_KEY / DS_KEY 环境变量，缺则跳过）
 npm run icons      # 重新生成图标
 npm run build      # 打包发布 zip 到 dist/
 npm run release -- 1.5.1 --push --github  # 发版：同步版本号/CHANGELOG + tag + 推送 + 建 Release

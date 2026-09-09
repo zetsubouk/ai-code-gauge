@@ -123,6 +123,15 @@ body.wide .panes { grid-template-columns: 1fr 1fr; }
 .pdot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 .pdot.glm { background: var(--accent-2); }
 .pdot.go { background: #4f8cff; }
+.pdot.ds { background: #4d6bfe; }
+/* 余额型面板标题行的可用状态药丸 */
+.state-pill {
+  flex: none; padding: 1px 7px; border-radius: 999px;
+  font-size: 10px; font-weight: 700;
+}
+.state-pill.ok { color: var(--ok); border: 1px solid rgba(47,213,124,.4); }
+.state-pill.bad { color: var(--bad); border: 1px solid rgba(255,92,92,.4); }
+.state-pill:empty { display: none; }
 /* 供应商名可收缩截断，防止长名 + 徽章 + 到期挤爆窄面板 */
 .pname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .plan-badge {
@@ -213,6 +222,9 @@ body.wide .panes { grid-template-columns: 1fr 1fr; }
 
 .empty { padding: 14px; text-align: center; color: var(--muted); font-size: 12px; }
 
+/* 余额型卡片：大数字为金额（¥）时字号略收，避免长金额撑爆窄栏 */
+.limit-pct.money { font-size: 20px; }
+
 /* ============ 底部状态栏 ============ */
 /* v2：细线分隔与头部呼应，长内容时边界更清楚 */
 .foot {
@@ -228,19 +240,33 @@ body.wide .panes { grid-template-columns: 1fr 1fr; }
   border: 1px solid var(--line); border-radius: 10px;
   padding: 10px 12px; margin-bottom: 12px; background: var(--panel-2);
 }
-.prov-head { display: flex; align-items: center; gap: 9px; cursor: pointer; }
+.prov-row { display: flex; align-items: center; gap: 8px; }
+.prov-head { display: flex; align-items: center; gap: 9px; cursor: pointer; flex: 1; min-width: 0; }
 .prov-head input[type="checkbox"] {
   width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer;
 }
 .prov-name { font-size: 13px; color: var(--text); }
 .prov-fields { margin-top: 10px; }
 .prov-fields[hidden] { display: none; }
+/* 排序按钮：右侧成对的 ↑↓，调整面板分栏与徽章循环顺序 */
+.prov-order-hint { font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+.prov-order-hint b { color: var(--text); }
+#prov-list { display: flex; flex-direction: column; }
+.prov-move { display: flex; gap: 4px; flex: none; }
+.move-btn {
+  width: 22px; height: 22px; padding: 0; border-radius: 6px;
+  border: 1px solid var(--line); background: transparent;
+  color: var(--muted); cursor: pointer; display: grid; place-items: center;
+  transition: color .15s, border-color .15s;
+}
+.move-btn:hover { color: var(--text); border-color: var(--accent); }
 
 /* ============ 可访问性 ============ */
 /* 键盘操作：清晰焦点环（置于 .field input:focus 之后以覆盖其 outline:none） */
 .icon-btn:focus-visible,
 .link-btn:focus-visible,
 button.primary:focus-visible,
+.move-btn:focus-visible,
 .field input:focus-visible,
 .field select:focus-visible,
 .prov-head input:focus-visible {

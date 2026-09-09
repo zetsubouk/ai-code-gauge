@@ -2,8 +2,9 @@
 // 新增供应商时在此注册一个条目即可，后台无需再改动；弹窗渲染仍按各家面板定制（见 ROADMAP 已知取舍）。
 // 契约字段：
 //   id             存储与快照中的供应商标识（providers.<id>、history.<id>、errors[].provider）
-//   name           展示名（通知标题前缀）
+//   name           展示名（通知标题前缀、通用状态条前缀）
 //   officialUrl    「打开官方面板」跳转目标
+//   mode           plan = 时间窗/套餐额度型；balance = 余额型（消耗由后台按日推导）
 //   defaults       设置缺省值（含初始 enabled）
 //   fetchUsage     拉取并整形为面板消费的数据结构；抛错由后台统一降级
 //   headlinePct    徽章头条百分比（与面板口径同源）；无可用窗口返回 null
@@ -15,6 +16,7 @@
 
 import { fetchQuotaLimit } from "./api.js";
 import { LEVEL_NAMES, describeLimit, classifyWindow, headlineLimit, THRESHOLDS } from "./constants.js";
+import { fetchBalance } from "./deepseek.js";
 import { fetchGoUsage } from "./go.js";
 import { clampPct } from "./format.js";
 
@@ -28,6 +30,7 @@ export const PROVIDERS = [
     id: "glm",
     name: "智谱 GLM",
     officialUrl: "https://open.bigmodel.cn/",
+    mode: "plan",
     defaults: { enabled: true, apiKey: "", planExpiry: "" },
 
     async fetchUsage(cfg) {
@@ -85,6 +88,7 @@ export const PROVIDERS = [
     id: "go",
     name: "OpenCode Go",
     officialUrl: "https://opencode.ai/",
+    mode: "plan",
     defaults: { enabled: false, apiKey: "" },
 
     fetchUsage(cfg) {
@@ -122,6 +126,66 @@ export const PROVIDERS = [
       return items;
     },
   },
+  {
+    id: "deepseek",
+    name: "DeepSeek",
+    officialUrl: "https://platform.deepseek.com/",
+    mode: "balance",
+    defaults: { enabled: false, apiKey: "" },
+
+    fetchUsage(cfg) {
+      return fetchBalance(cfg.apiKey);
+    },
+
+    // 徽章：今日消耗占今日起点余额的比例（起点由后台按日记录，见 service-worker 的 deriveBalance）
+    headlinePct(data) {
+      if (!data || typeof data.spentToday !== "number" || !(data.dayStart > 0)) return null;
+      return clampPct((data.spentToday / data.dayStart) * 100);
+    },
+
+    hasUsage(prev) {
+      return !!(prev && !prev.error && typeof prev.total === "number");
+    },
+    emptyData(_cfg, err) {
+      return { error: true, message: (err && err.message) || String(err) };
+    },
+    applyConfig(prev) {
+      return prev;
+    },
+
+    // 历史快照存每日余额，以「分」为单位（raw：不经 0–100 钳制，避免取整丢精度）
+    historyEntries(data) {
+      return data && typeof data.total === "number"
+        ? [{ key: "balance", pct: Math.round(data.total * 100), raw: true }]
+        : [];
+    },
+    // 官方接口的客观信号：is_available=false 表示余额不足以调用
+    notifyItems(data) {
+      return data && data.isAvailable === false
+        ? [{ key: "balance", title: "账户余额不足，API 调用可能失败" }]
+        : [];
+    },
+  },
 ];
 
 export const PROVIDER_MAP = Object.fromEntries(PROVIDERS.map((p) => [p.id, p]));
+
+/**
+ * 有效供应商顺序：providerOrder 中已注册的项排前（保持给定顺序），未包含的按注册顺序补齐。
+ * 面板分栏与徽章循环都使用该顺序；未知 id 静默忽略，导入旧配置安全。
+ */
+export function orderedProviders(order) {
+  const known = new Set(PROVIDERS.map((p) => p.id));
+  const seen = new Set();
+  const head = [];
+  for (const id of Array.isArray(order) ? order : []) {
+    if (typeof id === "string" && known.has(id) && !seen.has(id)) {
+      head.push(id);
+      seen.add(id);
+    }
+  }
+  for (const p of PROVIDERS) {
+    if (!seen.has(p.id)) head.push(p.id);
+  }
+  return head.map((id) => PROVIDER_MAP[id]);
+}

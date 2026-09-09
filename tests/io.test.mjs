@@ -10,7 +10,9 @@ test("完整合法配置：原样规整通过", () => {
       providers: {
         glm: { enabled: true, apiKey: " k1 ", planExpiry: "2026-12-31" },
         go: { enabled: true, apiKey: "k2" },
+        deepseek: { enabled: true, apiKey: "k3" },
       },
+      providerOrder: ["go", "glm", "deepseek"],
       refreshMin: 15,
       badgeCycleSec: 30,
       notify: true,
@@ -19,9 +21,20 @@ test("完整合法配置：原样规整通过", () => {
   assert.equal(s.providers.glm.apiKey, "k1"); // trim
   assert.equal(s.providers.glm.planExpiry, "2026-12-31");
   assert.equal(s.providers.go.enabled, true);
+  assert.equal(s.providers.deepseek.apiKey, "k3");
+  assert.deepEqual(s.providerOrder, ["go", "glm", "deepseek"]);
   assert.equal(s.refreshMin, 15);
   assert.equal(s.badgeCycleSec, 30);
   assert.equal(s.notify, true);
+});
+
+test("providerOrder：未知 id 剔除、非数组归空（由 orderedProviders 补齐）", () => {
+  const s = validateSettingsImport({
+    settings: { providers: {}, providerOrder: ["junk", "deepseek", "go", 42] },
+  });
+  assert.deepEqual(s.providerOrder, ["deepseek", "go"]);
+  const s2 = validateSettingsImport({ settings: { providers: {} } });
+  assert.deepEqual(s2.providerOrder, []);
 });
 
 test("缺 settings 字段：拒绝", () => {

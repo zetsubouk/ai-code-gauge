@@ -5,8 +5,14 @@
 
 ## [未发布]
 
+### Added
+- **DeepSeek 供应商（余额型）**：接入官方 `GET /user/balance` 接口（Bearer Key），面板新增 DeepSeek 栏——「账户余额」卡（充值/赠金构成、可用状态药丸）与「今日消耗」卡（今日起点余额推导消耗、近 7 日日均、按日均推算可用天数）；余额不足（`is_available=false` 或可用不足 1 天）红色告警。余额型供应商经注册表 `mode: "balance"` 接入，徽章取「今日消耗占今日起点余额比」；历史趋势以「分」为单位存整数（`upsertDay` 新增 `raw` 通道）；冒烟脚本支持 `DS_KEY`。
+- **供应商手动排序**：设置页每个供应商右侧新增 ↑↓ 按钮，调整结果存 `providerOrder`，面板分栏顺序与徽章循环顺序同源生效；配置导出/导入携带排序；旧配置与未知 id 安全回退注册顺序。
+
 ### Changed
-- **供应商注册表重构**：新增 `shared/providers.js` 注册表（`{id, name, officialUrl, defaults, fetchUsage, headlinePct, hasUsage, emptyData, applyConfig, historyEntries, notifyItems}` 契约），service-worker 的刷新循环、失败降级、每日历史快照、阈值提醒全部改为遍历注册表的通用实现，去除 glm/go 硬编码分支，新增供应商只需在注册表接入、后台零改动。弹窗「打开官方面板」跳转目标随注册表维护。存储与快照结构不变；新增注册表契约与 GLM/Go 行为单测 8 项（并修正一处依赖旧版历史键预初始化行为的测试断言）。
+- **供应商注册表重构**：新增 `shared/providers.js` 注册表（`{id, name, officialUrl, mode, defaults, fetchUsage, headlinePct, hasUsage, emptyData, applyConfig, historyEntries, notifyItems}` 契约），service-worker 的刷新循环、失败降级、每日历史快照、阈值提醒全部改为遍历注册表的通用实现，去除 glm/go 硬编码分支，新增供应商只需在注册表接入、后台零改动。弹窗「打开官方面板」跳转目标随注册表维护。存储与快照结构不变。
+- 弹窗宽度自适应更新：仅一家供应商呈现时 360px 单栏，两家及以上 560px 双栏（顺序随 providerOrder）。
+- 单元测试扩展到 62 项（供应商契约与排序、DeepSeek 解析/降级/账本、后台余额型刷新与排序集成）。
 
 ## [1.5.1] - 2026-09-09
 

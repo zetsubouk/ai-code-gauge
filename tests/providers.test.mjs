@@ -1,18 +1,18 @@
-// shared/providers.js 注册表测试：契约完整性（后台循环依赖的接口字段）+ GLM/Go 实现行为。
+// shared/providers.js 注册表测试：契约完整性（后台循环依赖的接口字段）+ GLM/Go/DeepSeek 实现行为 + 排序。
 // fetch 打桩，不发真实请求。
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PROVIDERS, PROVIDER_MAP } from "../shared/providers.js";
+import { PROVIDERS, PROVIDER_MAP, orderedProviders } from "../shared/providers.js";
 
 // 后台刷新/降级/历史/提醒循环实际调用的字段；新增供应商缺一项会在运行时才暴露，这里静态兜底
 const CONTRACT = [
-  "id", "name", "officialUrl", "defaults", "fetchUsage", "headlinePct",
+  "id", "name", "officialUrl", "mode", "defaults", "fetchUsage", "headlinePct",
   "hasUsage", "emptyData", "applyConfig", "historyEntries", "notifyItems",
 ];
 
-test("注册表契约：glm/go 顺序固定、id 唯一、每项实现完整接口", () => {
-  // 徽章循环与快照 providers 顺序依赖注册顺序，固定为 glm → go
-  assert.deepEqual(PROVIDERS.map((p) => p.id), ["glm", "go"]);
+test("注册表契约：glm/go/deepseek 顺序、id 唯一、每项实现完整接口", () => {
+  // 徽章循环与快照 providers 顺序依赖注册顺序，固定为 glm → go → deepseek
+  assert.deepEqual(PROVIDERS.map((p) => p.id), ["glm", "go", "deepseek"]);
   assert.equal(new Set(PROVIDERS.map((p) => p.id)).size, PROVIDERS.length);
   for (const p of PROVIDERS) {
     for (const key of CONTRACT) {
@@ -20,9 +20,19 @@ test("注册表契约：glm/go 顺序固定、id 唯一、每项实现完整接�
     }
     assert.equal(typeof p.fetchUsage, "function");
     assert.equal(typeof p.defaults.enabled, "boolean");
+    assert.ok(["plan", "balance"].includes(p.mode), `${p.id}.mode 非法`);
   }
   assert.equal(PROVIDER_MAP.glm, PROVIDERS[0]);
   assert.equal(PROVIDER_MAP.go, PROVIDERS[1]);
+  assert.equal(PROVIDER_MAP.deepseek, PROVIDERS[2]);
+});
+
+test("orderedProviders：用户顺序在前、未包含项按注册顺序补齐、未知 id 忽略", () => {
+  assert.deepEqual(orderedProviders(["go", "glm"]).map((p) => p.id), ["go", "glm", "deepseek"]);
+  assert.deepEqual(orderedProviders(["deepseek"]).map((p) => p.id), ["deepseek", "glm", "go"]);
+  assert.deepEqual(orderedProviders(["go", "junk", "go", "glm"]).map((p) => p.id), ["go", "glm", "deepseek"]);
+  assert.deepEqual(orderedProviders(undefined).map((p) => p.id), ["glm", "go", "deepseek"]);
+  assert.deepEqual(orderedProviders([]).map((p) => p.id), ["glm", "go", "deepseek"]);
 });
 
 /* ---------- fetch 桩 ---------- */
@@ -130,4 +140,56 @@ test("Go：notifyItems 按窗口名生成、historyEntries 全窗口", async () 
   assert.deepEqual(p.historyEntries(data).map((e) => e.key), ["rolling", "weekly", "monthly"]);
   assert.deepEqual(p.historyEntries(null), []);
   assert.deepEqual(p.notifyItems(null), []);
+});
+
+/* ---------- DeepSeek（余额型） ---------- */
+const DS_BODY = {
+  is_available: true,
+  balance_infos: [
+    { currency: "USD", total_balance: "1.00", granted_balance: "0.00", topped_up_balance: "1.00" },
+    { currency: "CNY", total_balance: "56.21", granted_balance: "10.00", topped_up_balance: "46.21" },
+  ],
+};
+
+test("DeepSeek：fetchBalance 解析 CNY 账户、字段转数字", async () => {
+  const p = PROVIDER_MAP.deepseek;
+  globalThis.fetch = async () => jsonResponse(structuredClone(DS_BODY));
+  const data = await p.fetchUsage({ apiKey: "k" });
+  assert.equal(data.isAvailable, true);
+  assert.equal(data.currency, "CNY"); // 优先 CNY 账户而非首条
+  assert.equal(data.total, 56.21);
+  assert.equal(data.granted, 10);
+  assert.equal(data.toppedUp, 46.21);
+});
+
+test("DeepSeek：余额接口 401 归类 invalid_key、坏数据归类 bad_data", async () => {
+  const p = PROVIDER_MAP.deepseek;
+  globalThis.fetch = async () => jsonResponse({ error: { message: "Invalid key" } }, 401);
+  await assert.rejects(p.fetchUsage({ apiKey: "k" }), (e) => e.kind === "invalid_key");
+  globalThis.fetch = async () => jsonResponse({ is_available: true, balance_infos: [] });
+  await assert.rejects(p.fetchUsage({ apiKey: "k" }), (e) => e.kind === "bad_data");
+});
+
+test("DeepSeek：headlinePct 由 spentToday/dayStart 推导并钳制", () => {
+  const p = PROVIDER_MAP.deepseek;
+  assert.equal(p.headlinePct({ spentToday: 5.621, dayStart: 56.21 }), 10);
+  assert.equal(p.headlinePct({ spentToday: 999, dayStart: 56.21 }), 100); // 钳制
+  assert.equal(p.headlinePct({ total: 1 }), null); // 缺账本字段
+  assert.equal(p.headlinePct(null), null);
+});
+
+test("DeepSeek：降级三件套、历史存余额、余额不足提醒", () => {
+  const p = PROVIDER_MAP.deepseek;
+  assert.equal(p.hasUsage(null), false);
+  assert.equal(p.hasUsage({ error: true }), false);
+  assert.equal(p.hasUsage({ total: "x" }), false);
+  assert.equal(p.hasUsage({ total: 56.21 }), true);
+  assert.deepEqual(p.emptyData({}, new Error("boom")), { error: true, message: "boom" });
+  const prev = { total: 56.21 };
+  assert.equal(p.applyConfig(prev, { apiKey: "x" }), prev);
+
+  assert.deepEqual(p.historyEntries({ total: 56.21 }), [{ key: "balance", pct: 5621, raw: true }]);
+  assert.deepEqual(p.historyEntries({}), []);
+  assert.deepEqual(p.notifyItems({ isAvailable: false }), [{ key: "balance", title: "账户余额不足，API 调用可能失败" }]);
+  assert.deepEqual(p.notifyItems({ isAvailable: true }), []);
 });

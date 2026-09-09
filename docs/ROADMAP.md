@@ -4,6 +4,8 @@
 
 ## P1 · 供应商扩展与国际化
 
+- **Xiaomi MiMo（实验性）**：平台有 Token Plan（`tp-` Key）与按量（`sk-` Key）双模式，但用量/余额接口实测仅认小米账号 cookie（401 跳 SSO，cc-switch #5031 同卡点）。
+  可行路径：`chrome.cookies` 读登录态或等官方开放 Key 鉴权；接口未文档化，需抓包确认字段。
 - **GLM 国际版**：支持 `api.z.ai` 主机（路径与大陆版一致，见 [API.md](API.md)），
   供应商设置中增加主机/版本选项；需真实 Key 冒烟验证。
 - **GLM 团队版**：可选填写 `Bigmodel-Organization` / `Bigmodel-Project` 请求头

@@ -9,6 +9,7 @@ export function validateSettingsImport(data) {
   const p = s.providers && typeof s.providers === "object" ? s.providers : {};
   const glm = p.glm && typeof p.glm === "object" ? p.glm : {};
   const go = p.go && typeof p.go === "object" ? p.go : {};
+  const ds = p.deepseek && typeof p.deepseek === "object" ? p.deepseek : {};
   if (glm.planExpiry && !/^\d{4}-\d{2}-\d{2}$/.test(String(glm.planExpiry))) {
     throw new Error("GLM 到期日期格式应为 YYYY-MM-DD");
   }
@@ -28,7 +29,15 @@ export function validateSettingsImport(data) {
         enabled: go.enabled === true,
         apiKey: typeof go.apiKey === "string" ? go.apiKey.trim() : "",
       },
+      deepseek: {
+        enabled: ds.enabled === true,
+        apiKey: typeof ds.apiKey === "string" ? ds.apiKey.trim() : "",
+      },
     },
+    // 面板顺序：仅保留合法 id 的子序列；缺失/未知项由 orderedProviders 补齐/忽略
+    providerOrder: Array.isArray(s.providerOrder)
+      ? s.providerOrder.filter((id) => ["glm", "go", "deepseek"].includes(id))
+      : [],
     refreshMin: clampNum(s.refreshMin, 10, 1, 30),
     badgeCycleSec: clampNum(s.badgeCycleSec, 10, 5, 60),
     notify: s.notify === true,

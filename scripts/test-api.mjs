@@ -1,17 +1,19 @@
 // 用真实密钥跑通线上链路（Node 18+），验证契约与解析逻辑。带断言：任一失败退出码非 0。
-// 用法：BIGMODEL_KEY=<glm key> GO_KEY=<opencode go key> node scripts/test-api.mjs
-// 缺 key 的供应商自动跳过；两个 key 都缺时退出码 2。
+// 用法：BIGMODEL_KEY=<glm key> GO_KEY=<opencode go key> DS_KEY=<deepseek key> node scripts/test-api.mjs
+// 缺 key 的供应商自动跳过；所有 key 都缺时退出码 2。
 // 注：24h 模型/工具用量接口自 v1.1.0 起不再被扩展调用，故不在冒烟范围内。
 import assert from "node:assert/strict";
 import { fetchQuotaLimit } from "../shared/api.js";
 import { LEVEL_NAMES, describeLimit } from "../shared/constants.js";
 import { fetchGoUsage, GO_WINDOW_LIMITS } from "../shared/go.js";
+import { fetchBalance } from "../shared/deepseek.js";
 import { fmtTime, pctColor } from "../shared/format.js";
 
 const glmKey = process.env.BIGMODEL_KEY;
 const goKey = process.env.GO_KEY;
-if (!glmKey && !goKey) {
-  console.error("缺少 BIGMODEL_KEY / GO_KEY 环境变量");
+const dsKey = process.env.DS_KEY;
+if (!glmKey && !goKey && !dsKey) {
+  console.error("缺少 BIGMODEL_KEY / GO_KEY / DS_KEY 环境变量");
   process.exit(2);
 }
 
@@ -62,6 +64,24 @@ if (goKey) {
   }
 } else {
   console.log("=== OpenCode Go 跳过（未设 GO_KEY） ===");
+}
+
+if (dsKey) {
+  console.log("=== DeepSeek fetchBalance ===");
+  try {
+    const bal = await fetchBalance(dsKey);
+    assert.equal(typeof bal.total, "number", "total 应为数字");
+    assert.ok(bal.total >= 0, "余额为负");
+    console.log(
+      `  - 可用=${bal.isAvailable} | ${bal.currency} 总余额=${bal.total.toFixed(2)}`,
+      `| 赠金=${bal.granted.toFixed(2)} | 充值=${bal.toppedUp.toFixed(2)}`
+    );
+  } catch (e) {
+    failures++;
+    console.error("DeepSeek 冒烟失败:", e.kind || "", e.message);
+  }
+} else {
+  console.log("=== DeepSeek 跳过（未设 DS_KEY） ===");
 }
 
 console.log(failures ? `=== done，${failures} 项失败 ===` : "=== done，全部通过 ===");

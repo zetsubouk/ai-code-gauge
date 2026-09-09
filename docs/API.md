@@ -124,7 +124,47 @@ Authorization: Bearer <go-api-key>
 - 各窗口的美元限额为**已知档位的参考值**（扩展内硬编码于 `shared/go.js`）：rolling `$12`、weekly `$30`、monthly `$60`。官方不同订阅档位或调价后该数值不再准确，仅作辅助展示，以官方页面为准。
 - 鉴权失败（Key 无效）：`{"type":"error","error":{"type":"AuthError","message":"Missing API key."}}`，HTTP 401。
 
-## 三、通用边界与注意
+## 三、DeepSeek（`api.deepseek.com`，余额型）
+
+> 鉴权：请求头 `Authorization: Bearer <apiKey>`。DeepSeek 为按量计费，无时间窗套餐额度，扩展展示余额与本地推导的消耗速度。
+
+### 查询余额
+
+```
+GET https://api.deepseek.com/user/balance
+Authorization: Bearer <ds-api-key>
+```
+
+实测响应（2026-09-09）：
+
+```jsonc
+{
+  "is_available": true,               // 余额是否足以发起 API 调用
+  "balance_infos": [
+    { "currency": "CNY", "total_balance": "56.21",
+      "granted_balance": "0.00",      // 未过期赠金（扣费优先赠金）
+      "topped_up_balance": "56.21" }  // 充值余额
+  ]
+}
+```
+
+- 字段均为**字符串**数字，扩展解析为 number；多币种账户优先取 `CNY` 条目，否则取第一条。
+- 扩展本地按日记录「今日起点余额」推导今日消耗（余额高于起点视为充值并重置起点）；
+  历史趋势按「分」为单位存整数，避免取整丢精度。
+- Key 无效：HTTP 401（归类 `invalid_key`）。
+- 已知边界：官方未提供用量明细 API（消耗速度由本地按日差额推导，扩展刚安装时无今日数据）。
+
+## 四、Xiaomi MiMo（调研结论：暂不接入）
+- 平台 `platform.xiaomimimo.com` 有 Token Plan 四档套餐（统一 Credit）与按量付费两种模式，
+  API Key 前缀区分：`tp-`（Token Plan）/ `sk-`（按量），Base URL 亦不同
+  （`token-plan-cn.` / `api.`）。
+- **用量/余额查询接口均不接受 API Key 鉴权**：`/api/v1/tokenPlan/usage` 与
+  `/api/v1/user/info` 实测返回 401 并跳小米账号 SSO（仅认账号 cookie）。
+  cc-switch 亦卡于此（其 issue #5031/#2488）。Chrome 扩展理论上可用 `chrome.cookies`
+  读登录态实现，但属账号凭据新权限 + 未文档化接口，暂不接入，留作实验性方向。
+- `sk-` Key 本身可用：`GET https://api.xiaomimimo.com/v1/models` 返回 mimo-v2.5 系列模型列表。
+
+## 五、通用边界与注意
 - 套餐额度/消耗**仅统计**在官方支持工具内的编码用量；本扩展只做查询，不发起模型请求，不消耗任何套餐额度。
 - `model-usage`/`tool-usage`（GLM）在账号无对应消费时返回空 body（200）或全 0，属正常。
 - GLM 团队版套餐查询需额外 `Bigmodel-Organization` / `Bigmodel-Project` 请求头，本期未支持。

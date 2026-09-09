@@ -2,7 +2,7 @@
 // 供应商差异全部收敛在 shared/providers.js 注册表，这里只保留通用的刷新/降级/历史/提醒循环。
 // 密钥只存本机 chrome.storage.local，仅用于向各供应商官方接口鉴权。
 
-import { PROVIDERS } from "../shared/providers.js";
+import { PROVIDERS, orderedProviders } from "../shared/providers.js";
 import { pctColor, badgeText, fmtDate } from "../shared/format.js";
 import { upsertDay } from "../shared/history.js";
 
@@ -16,7 +16,7 @@ const DEFAULTS = {
 const LEGACY_KEYS = ["apiKey", "planExpiry"];
 
 async function getSettings() {
-  const got = await chrome.storage.local.get(["providers", "refreshMin", "badgeCycleSec", "notify", ...LEGACY_KEYS]);
+  const got = await chrome.storage.local.get(["providers", "providerOrder", "refreshMin", "badgeCycleSec", "notify", ...LEGACY_KEYS]);
   let stored = got.providers;
   if (!stored) {
     // 旧版单供应商配置迁移：apiKey/planExpiry 归入 GLM
@@ -31,6 +31,7 @@ async function getSettings() {
     badgeCycleSec,
     notify: got.notify === true,
     providers,
+    providerOrder: orderedProviders(got.providerOrder).map((p) => p.id),
   };
 }
 
@@ -115,8 +116,8 @@ async function recordHistories(snapshot) {
     const data = snapshot.providers[p.id];
     if (!(data && !data.stale)) continue;
     h[p.id] = h[p.id] || {};
-    for (const { key, pct } of p.historyEntries(data)) {
-      h[p.id][key] = upsertDay(h[p.id][key], day, pct);
+    for (const { key, pct, raw } of p.historyEntries(data)) {
+      h[p.id][key] = upsertDay(h[p.id][key], day, pct, { raw: Boolean(raw) });
       changed = true;
     }
   }
@@ -158,20 +159,39 @@ async function checkNotify(snapshot) {
   await chrome.storage.local.set({ notifyCool: cool });
 }
 
+/* ---------- 余额型供应商：按日账本，推导今日消耗 ---------- */
+// 每天首刷记录「今日起点余额」，之后 spentToday = 起点 - 当前；余额回升（充值）则重置起点。
+// 数据随快照下发（spentToday/dayStart），徽章、历史与面板共用。
+async function deriveBalance(providerId, data) {
+  const day = fmtDate(Date.now());
+  const { balanceLedger } = await chrome.storage.local.get(["balanceLedger"]);
+  const led = balanceLedger && typeof balanceLedger === "object" ? balanceLedger : {};
+  let entry = led[providerId];
+  if (!entry || entry.day !== day || typeof entry.start !== "number" || data.total > entry.start) {
+    entry = { day, start: data.total };
+  }
+  const spentToday = Math.max(0, Math.round((entry.start - data.total) * 100) / 100);
+  led[providerId] = entry;
+  await chrome.storage.local.set({ balanceLedger: led });
+  return { ...data, spentToday, dayStart: entry.start };
+}
+
 async function runRefresh() {
-  const { providers, notify } = await getSettings();
+  const { providers, providerOrder, notify } = await getSettings();
+  const ordered = orderedProviders(providerOrder);
   // 上一份快照：某供应商拉取失败时用于降级保留其上次成功数据
   const { lastData: prev } = await chrome.storage.local.get(["lastData"]);
   const prevProviders = (prev && prev.providers) || {};
   const lines = [];
   const errors = [];
-  const snapshot = { fetchedAt: Date.now(), providers: Object.fromEntries(PROVIDERS.map((p) => [p.id, null])), errors };
+  const snapshot = { fetchedAt: Date.now(), providers: Object.fromEntries(ordered.map((p) => [p.id, null])), errors };
 
-  for (const p of PROVIDERS) {
+  for (const p of ordered) {
     const cfg = providers[p.id];
     if (!(cfg && cfg.enabled && cfg.apiKey)) continue;
     try {
-      const data = await p.fetchUsage(cfg);
+      let data = await p.fetchUsage(cfg);
+      if (p.mode === "balance") data = await deriveBalance(p.id, data);
       // fetchedAt 记录该供应商数据的实际拉取时间，供降级展示时标注数据新旧
       snapshot.providers[p.id] = { ...data, fetchedAt: snapshot.fetchedAt };
       const pct = p.headlinePct(data);
