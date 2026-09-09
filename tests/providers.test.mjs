@@ -2,7 +2,7 @@
 // fetch 打桩，不发真实请求。
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PROVIDERS, PROVIDER_MAP, orderedProviders } from "../shared/providers.js";
+import { PROVIDERS, PROVIDER_MAP, orderedProviders, spanTargetId } from "../shared/providers.js";
 
 // 后台刷新/降级/历史/提醒循环实际调用的字段；新增供应商缺一项会在运行时才暴露，这里静态兜底
 const CONTRACT = [
@@ -192,4 +192,13 @@ test("DeepSeek：降级三件套、历史存余额、余额不足提醒", () => 
   assert.deepEqual(p.historyEntries({}), []);
   assert.deepEqual(p.notifyItems({ isAvailable: false }), [{ key: "balance", title: "账户余额不足，API 调用可能失败" }]);
   assert.deepEqual(p.notifyItems({ isAvailable: true }), []);
+});
+
+test("spanTargetId：仅三家呈现时取末位跨列，其余 null", () => {
+  assert.equal(spanTargetId(["glm", "go", "deepseek"]), "deepseek");
+  assert.equal(spanTargetId(["deepseek", "glm", "go"]), "go"); // 排序末位而非注册末位
+  assert.equal(spanTargetId(["glm"]), null);
+  assert.equal(spanTargetId(["glm", "go"]), null);
+  assert.equal(spanTargetId(["glm", "go", "deepseek", "x"]), null);
+  assert.equal(spanTargetId(undefined), null);
 });

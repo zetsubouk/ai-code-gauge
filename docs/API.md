@@ -154,7 +154,18 @@ Authorization: Bearer <ds-api-key>
 - Key 无效：HTTP 401（归类 `invalid_key`）。
 - 已知边界：官方未提供用量明细 API（消耗速度由本地按日差额推导，扩展刚安装时无今日数据）。
 
-## 四、Xiaomi MiMo（调研结论：暂不接入）
+## 四、已调研暂不接入的平台
+
+### 硅基流动 SiliconFlow（2026-09-09 实测：接口停服，待替代）
+- 原余额接口 `GET https://api.siliconflow.cn/v1/user/info`（Bearer Key）已被官方下线：
+  2026-08-14 起正式停止服务，实测返回 `HTTP 410` +
+  `{"code":20092,"message":"This endpoint is deprecated and is no longer available.","data":null}`。
+- 官方公告承诺「后续适时提供账户层面的替代 API」，截至本文档更新尚未发布
+  （docs.siliconflow.cn 更新公告）；RikkaHub #1811、new-api #6565 等第三方客户端均已移除该功能。
+- 结论：待官方替代接口上线后按余额型（`mode: "balance"`）接入，届时仅需新增
+  `shared/siliconflow.js` 与注册表条目。
+
+### Xiaomi MiMo（暂不接入）
 - 平台 `platform.xiaomimimo.com` 有 Token Plan 四档套餐（统一 Credit）与按量付费两种模式，
   API Key 前缀区分：`tp-`（Token Plan）/ `sk-`（按量），Base URL 亦不同
   （`token-plan-cn.` / `api.`）。

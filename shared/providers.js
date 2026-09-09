@@ -189,3 +189,11 @@ export function orderedProviders(order) {
   }
   return head.map((id) => PROVIDER_MAP[id]);
 }
+
+/**
+ * 三家同时呈现时跨双列的面板 id（呈现顺序的末位，即 providerOrder 末位），避免 2×2 网格缺角；
+ * 其余数量返回 null（1/2 家无需跨列，4 家为完整 2×2，≥5 家 2×N 滚动）。
+ */
+export function spanTargetId(shownIds) {
+  return Array.isArray(shownIds) && shownIds.length === 3 ? shownIds[shownIds.length - 1] : null;
+}

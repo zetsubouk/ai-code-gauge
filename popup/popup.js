@@ -3,7 +3,7 @@
 
 import { nf, fmtTime, fmtRemain, pctColor, pctState, clampPct, daysLeft, fmtDate } from "../shared/format.js";
 import { LEVEL_NAMES, classifyWindow, THRESHOLDS } from "../shared/constants.js";
-import { PROVIDER_MAP, orderedProviders } from "../shared/providers.js";
+import { PROVIDER_MAP, orderedProviders, spanTargetId } from "../shared/providers.js";
 import { lastDays, describeTrend } from "../shared/history.js";
 import { validateSettingsImport } from "../shared/io.js";
 
@@ -301,8 +301,15 @@ function render(payload, history, order) {
     const pane = paneById[p.id];
     if (pane) pane.style.order = i;
   });
-  const shownCount = [glmShown, goShown, dsShown].filter(Boolean).length;
+  const shownById = { glm: glmShown, go: goShown, deepseek: dsShown };
+  const shownIds = ordered.map((p) => p.id).filter((id) => shownById[id]);
+  const shownCount = shownIds.length;
   document.body.classList.toggle("wide", shownCount >= 2);
+  // 三家呈现：排序末位面板跨双列（卡内并排），避免 2×2 缺角
+  const spanId = spanTargetId(shownIds);
+  for (const [id, pane] of Object.entries(paneById)) {
+    pane.classList.toggle("span2", id === spanId);
+  }
 
   // 头部品牌名静态维护于 HTML；徽章/到期随 GLM 面板标题行展示
   let badge = "";
