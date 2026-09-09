@@ -13,7 +13,7 @@
 ### Changed
 - **供应商注册表重构**：新增 `shared/providers.js` 注册表（`{id, name, officialUrl, mode, defaults, fetchUsage, headlinePct, hasUsage, emptyData, applyConfig, historyEntries, notifyItems}` 契约），service-worker 的刷新循环、失败降级、每日历史快照、阈值提醒全部改为遍历注册表的通用实现，去除 glm/go 硬编码分支，新增供应商只需在注册表接入、后台零改动。弹窗「打开官方面板」跳转目标随注册表维护。存储与快照结构不变。
 - 弹窗宽度自适应更新：仅一家供应商呈现时 360px 单栏，两家及以上 560px 双栏（顺序随 providerOrder）。
-- 单元测试扩展到 62 项（供应商契约与排序、DeepSeek 解析/降级/账本、后台余额型刷新与排序集成）。
+- 单元测试扩展到 63 项（供应商契约与排序、DeepSeek 解析/降级/账本、后台余额型刷新与排序集成）。
 
 ## [1.5.1] - 2026-09-09
 
