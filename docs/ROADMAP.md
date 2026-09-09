@@ -4,8 +4,6 @@
 
 ## P1 · 供应商扩展与国际化
 
-- **供应商注册表重构**：`shared/providers.js` 抽象 `{id, name, fetchUsage}`，
-  去除 service-worker 中 glm/go 硬编码分支，新供应商以模块接入。
 - **GLM 国际版**：支持 `api.z.ai` 主机（路径与大陆版一致，见 [API.md](API.md)），
   供应商设置中增加主机/版本选项；需真实 Key 冒烟验证。
 - **GLM 团队版**：可选填写 `Bigmodel-Organization` / `Bigmodel-Project` 请求头
@@ -25,7 +23,7 @@
 ## 已知取舍（暂不动）
 
 - 双供应商布局假设固化在 CSS（单栏 360px / 双栏 560px / 两列 grid）；
-  引入第三家供应商时需改为按面板数自适应。
+  数据层已由 `shared/providers.js` 注册表就绪，引入第三家供应商时只需改弹窗按面板数自适应。
 - `scripts/harness.html` 是 popup.html 的手工副本，存在漂移风险；
   长期可考虑在单测中以 DOM 解析方式直接校验 popup.html 结构。
 - 用量历史依赖弹窗/后台刷新触发记录，长期未打开扩展会产生历史空洞（属预期行为）。

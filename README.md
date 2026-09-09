@@ -113,14 +113,14 @@
 - **Manifest V3** + 原生 HTML/CSS/JS，零构建依赖
 - 后台 `service-worker`：`chrome.alarms` 定时刷新、徽章更新、数据缓存
 - 弹窗 `popup/`：横向进度条仪表 + 用量明细
-- 共享模块 `shared/`：接口封装 / 平台常量 / 格式化
+- 共享模块 `shared/`：供应商注册表 `providers.js`（后台拉取/降级/历史/提醒循环只依赖注册表契约）、接口封装 / 平台常量 / 格式化
 
 ```
 ai-code-gauge/
 ├── manifest.json              # MV3 配置
 ├── background/service-worker.js # 定时刷新、徽章、缓存
 ├── popup/                     # 弹窗 UI（html/css/js）
-├── shared/                    # api.js / constants.js / go.js / format.js
+├── shared/                    # providers.js 供应商注册表 + api/go 接口封装 / constants / format / history / io / net
 ├── icons/                     # 扩展图标（16/32/48/128）
 ├── docs/                      # API.md 接口契约 / INSTALL.md 安装指南 / ROADMAP.md 路线图 / screenshots 截图
 ├── scripts/                   # 图标生成 / 打包 / 接口冒烟测试

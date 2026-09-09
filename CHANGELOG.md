@@ -3,6 +3,11 @@
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [未发布]
+
+### Changed
+- **供应商注册表重构**：新增 `shared/providers.js` 注册表（`{id, name, officialUrl, defaults, fetchUsage, headlinePct, hasUsage, emptyData, applyConfig, historyEntries, notifyItems}` 契约），service-worker 的刷新循环、失败降级、每日历史快照、阈值提醒全部改为遍历注册表的通用实现，去除 glm/go 硬编码分支，新增供应商只需在注册表接入、后台零改动。弹窗「打开官方面板」跳转目标随注册表维护。存储与快照结构不变；新增注册表契约与 GLM/Go 行为单测 8 项（并修正一处依赖旧版历史键预初始化行为的测试断言）。
+
 ## [1.5.1] - 2026-09-09
 
 ### Added

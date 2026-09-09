@@ -3,6 +3,7 @@
 
 import { nf, fmtTime, fmtRemain, pctColor, pctState, clampPct, daysLeft, fmtDate } from "../shared/format.js";
 import { LEVEL_NAMES, classifyWindow, THRESHOLDS } from "../shared/constants.js";
+import { PROVIDER_MAP } from "../shared/providers.js";
 import { lastDays, describeTrend } from "../shared/history.js";
 import { validateSettingsImport } from "../shared/io.js";
 
@@ -24,8 +25,7 @@ const els = {
   footRefresh: $("foot-refresh"),
 };
 
-// 官方用量页入口（平台首页；后续确认深层控制台路径后可直接替换）
-const OFFICIAL_URLS = { glm: "https://open.bigmodel.cn/", go: "https://opencode.ai/" };
+// 官方用量页入口随注册表维护（平台首页；后续确认深层控制台路径后在 providers.js 替换）
 
 function shortError(e) { return e && e.message ? e.message : (e || "未知错误"); }
 
@@ -372,8 +372,8 @@ els.glmOn.addEventListener("change", syncFieldsVisibility);
 els.goOn.addEventListener("change", syncFieldsVisibility);
 els.btnRefresh.addEventListener("click", doRefresh);
 els.btnSettings.addEventListener("click", showSetup);
-els.glmOpen.addEventListener("click", () => chrome.tabs.create({ url: OFFICIAL_URLS.glm }));
-els.goOpen.addEventListener("click", () => chrome.tabs.create({ url: OFFICIAL_URLS.go }));
+els.glmOpen.addEventListener("click", () => chrome.tabs.create({ url: PROVIDER_MAP.glm.officialUrl }));
+els.goOpen.addEventListener("click", () => chrome.tabs.create({ url: PROVIDER_MAP.go.officialUrl }));
 
 els.btnSave.addEventListener("click", async () => {
   const providers = {

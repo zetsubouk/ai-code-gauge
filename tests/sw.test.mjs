@@ -179,7 +179,7 @@ test("故障隔离：GLM 失败不影响 Go；GLM 降级保留上次成功数据
   assert.equal(badge.texts.at(-1), "30%");
 
   // stale 数据不写入当日历史快照（glm 无记录，go 正常记录）
-  assert.equal(Object.keys(store.history.glm).length, 0);
+  assert.equal(Object.keys(store.history.glm || {}).length, 0);
   assert.ok(store.history.go.rolling);
 });
 

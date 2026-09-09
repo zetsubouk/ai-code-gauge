@@ -50,6 +50,7 @@
 
 - **零构建依赖**：本项目刻意不引入 webpack/vite，保持原生 JS + MV3 结构。请勿引入构建链路。
 - 模块化：通用逻辑放 `shared/`，业务逻辑分 `background/` 与 `popup/`。
+- 新增供应商：在 `shared/providers.js` 注册条目（拉取/降级/历史/提醒的契约见文件头注释），后台无需改动；弹窗面板需单独定制。
 - 中文界面文案；代码注释保持简洁。
 - 修改 `shared/constants.js` / `shared/api.js` 涉及接口契约时，务必同步更新 `docs/API.md`。
 
