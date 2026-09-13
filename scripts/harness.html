@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <!-- 渲染验证用：注入同结构 DOM + chrome 桩 + 样例数据，验证 popup.js 双供应商渲染。
+     body 结构必须与 popup/popup.html 保持同构（popup.js 依赖其中的元素 id），
      需通过 http 访问（模块相对导入）。 -->
 <html lang="zh-CN">
 <head>
@@ -23,7 +24,7 @@
           windows: [
             { key: "rolling", name: "5 小时", percent: 1, limit: 12, resetsAt: new Date(NOW + 3600000).toISOString(), endTs: NOW + 3600000 },
             { key: "weekly", name: "每周", percent: 27, limit: 30, resetsAt: new Date(NOW + 4 * 86400000).toISOString(), endTs: NOW + 4 * 86400000 },
-            { key: "monthly", name: "每月", percent: 36, limit: 60, resetsAt: new Date(NOW + 14 * 86400000).toISOString(), endTs: NOW + 14 * 86400000 }
+            { key: "monthly", name: "每月", percent: 36, limit: 60, resetsAt: new Date(NOW + 4 * 86400000).toISOString(), endTs: NOW + 4 * 86400000 }
           ]
         }
       },
@@ -36,6 +37,7 @@
           set: async () => {}
         }
       },
+      tabs: { create: async () => {} },
       runtime: {
         sendMessage: async () => ({ ok: true, data: SAMPLE }),
         onMessage: { addListener: () => {} }
@@ -63,35 +65,121 @@
     </defs>
   </svg>
 
+  <!-- 设置（结构与 popup/popup.html 同构） -->
   <section id="setup" class="setup" hidden>
     <div class="setup-head">
       <svg class="logo-svg lg" viewBox="0 0 128 128"><use href="#gauge-logo" /></svg>
-      <div class="setup-title"><h1>AI Coding Gauge</h1><p>Coding Plan 用量监控 · 配置供应商</p></div>
+      <div class="setup-title">
+        <h1>AI Coding Gauge</h1>
+        <p>Coding Plan 用量监控 · 配置供应商</p>
+      </div>
     </div>
     <div class="setup-body">
-      <div class="prov-block">
-        <label class="prov-head"><input type="checkbox" id="f-glm-on" checked /><span class="prov-name"><b>GLM</b>（智谱中国大陆版）</span></label>
-        <div id="glm-fields" class="prov-fields">
-          <label class="field"><span>API Key</span><input id="f-glm-key" type="password" /></label>
-          <label class="field"><span>套餐到期日期（选填）</span><input id="f-glm-expiry" type="date" /></label>
+      <p class="prov-order-hint">面板分栏与图标循环按以下顺序排列，用 <b>↑ ↓</b> 调整</p>
+      <div id="prov-list">
+        <div class="prov-block" data-prov="glm">
+          <div class="prov-row">
+            <label class="prov-head">
+              <input type="checkbox" id="f-glm-on" />
+              <span class="prov-name"><b>GLM</b>（智谱中国大陆版 · bigmodel.cn）</span>
+            </label>
+            <div class="prov-move" data-prov="glm">
+              <button type="button" class="move-btn" data-move="up" title="上移" aria-label="上移 GLM"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg></button>
+              <button type="button" class="move-btn" data-move="down" title="下移" aria-label="下移 GLM"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg></button>
+            </div>
+          </div>
+          <div id="glm-fields" class="prov-fields">
+            <label class="field">
+              <span>API Key</span>
+              <input id="f-glm-key" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴智谱 API Key" />
+            </label>
+            <label class="field">
+              <span>套餐到期日期（选填）</span>
+              <input id="f-glm-expiry" type="date" />
+            </label>
+          </div>
+        </div>
+
+        <div class="prov-block" data-prov="go">
+          <div class="prov-row">
+            <label class="prov-head">
+              <input type="checkbox" id="f-go-on" />
+              <span class="prov-name"><b>OpenCode Go</b>（opencode.ai）</span>
+            </label>
+            <div class="prov-move" data-prov="go">
+              <button type="button" class="move-btn" data-move="up" title="上移" aria-label="上移 OpenCode Go"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg></button>
+              <button type="button" class="move-btn" data-move="down" title="下移" aria-label="下移 OpenCode Go"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg></button>
+            </div>
+          </div>
+          <div id="go-fields" class="prov-fields">
+            <label class="field">
+              <span>API Key</span>
+              <input id="f-go-key" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴 OpenCode Go API Key" />
+            </label>
+          </div>
+        </div>
+
+        <div class="prov-block" data-prov="deepseek">
+          <div class="prov-row">
+            <label class="prov-head">
+              <input type="checkbox" id="f-ds-on" />
+              <span class="prov-name"><b>DeepSeek</b>（按量付费 · 余额监控）</span>
+            </label>
+            <div class="prov-move" data-prov="deepseek">
+              <button type="button" class="move-btn" data-move="up" title="上移" aria-label="上移 DeepSeek"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg></button>
+              <button type="button" class="move-btn" data-move="down" title="下移" aria-label="下移 DeepSeek"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg></button>
+            </div>
+          </div>
+          <div id="ds-fields" class="prov-fields">
+            <label class="field">
+              <span>API Key</span>
+              <input id="f-ds-key" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴 DeepSeek API Key" />
+            </label>
+          </div>
         </div>
       </div>
-      <div class="prov-block">
-        <label class="prov-head"><input type="checkbox" id="f-go-on" checked /><span class="prov-name"><b>OpenCode Go</b>（opencode.ai）</span></label>
-        <div id="go-fields" class="prov-fields">
-          <label class="field"><span>API Key</span><input id="f-go-key" type="password" /></label>
-        </div>
-      </div>
-      <label class="field"><span>自动刷新间隔</span>
-        <select id="f-refresh"><option value="10" selected>10 分钟</option></select></label>
-      <label class="field"><span>图标百分比循环切换间隔</span>
-        <select id="f-cycle"><option value="10" selected>10 秒</option></select></label>
+
+      <label class="field">
+        <span>自动刷新间隔</span>
+        <select id="f-refresh">
+          <option value="1">1 分钟</option>
+          <option value="5">5 分钟</option>
+          <option value="10" selected>10 分钟</option>
+          <option value="15">15 分钟</option>
+          <option value="30">30 分钟</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>图标百分比循环切换间隔（双供应商时）</span>
+        <select id="f-cycle">
+          <option value="5">5 秒</option>
+          <option value="10" selected>10 秒</option>
+          <option value="15">15 秒</option>
+          <option value="30">30 秒</option>
+          <option value="60">60 秒</option>
+        </select>
+      </label>
+      <label class="check-field">
+        <input type="checkbox" id="f-notify" />
+        <span>额度 ≥95% 时发送系统提醒（同窗口 6 小时冷却）</span>
+      </label>
       <button id="btn-save" class="primary">保存并查询</button>
       <p id="setup-msg" class="msg" hidden></p>
+      <div class="io-row">
+        <button id="btn-export" class="ghost" type="button">导出配置</button>
+        <button id="btn-import" class="ghost" type="button">导入配置</button>
+        <input type="file" id="f-import" accept="application/json,.json" hidden />
+      </div>
+      <label class="check-field">
+        <input type="checkbox" id="f-export-keys" />
+        <span>导出包含 API Key（明文，请谨慎保管与分享）</span>
+      </label>
+      <p class="privacy">密钥仅存本机，仅发送给各供应商官方接口，无任何第三方。</p>
     </div>
   </section>
 
-  <section id="panel" class="panel">
+  <!-- 主面板（结构与 popup/popup.html 同构） -->
+  <section id="panel" class="panel" hidden>
     <div class="brandbar"></div>
     <header class="head">
       <div class="brand">
@@ -99,27 +187,47 @@
         <div class="brand-title" id="brand-title">AI Coding Gauge<span class="zh">用量监控</span></div>
       </div>
       <div class="head-actions">
-        <button id="btn-settings" class="icon-btn" title="设置">
+        <button id="btn-settings" title="设置" aria-label="设置" class="icon-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
-        <button id="btn-refresh" class="icon-btn" title="刷新">
+        <button id="btn-refresh" title="刷新" aria-label="刷新" class="icon-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
         </button>
       </div>
     </header>
-    <div id="status-bar" class="status" hidden></div>
-    <div id="plan-err" class="plan-err" hidden></div>
+
+    <div id="status-bar" class="status" aria-live="polite" hidden></div>
+    <div id="plan-err" class="plan-err" role="alert" hidden></div>
+
     <div id="panes" class="panes">
       <section id="pane-glm" class="pane">
-        <div class="pane-title"><i class="pdot glm"></i><span class="pname">智谱 GLM</span><span id="plan-badge" class="plan-badge"></span><span id="plan-expiry" class="plan-expiry"></span></div>
+        <div class="pane-title">
+          <div class="pane-title-main">
+            <i class="pdot glm"></i><span class="pname">智谱 GLM</span>
+            <span id="plan-badge" class="plan-badge"></span>
+            <button id="btn-glm-open" class="link-btn" title="打开智谱官方面板" aria-label="打开智谱官方面板"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button>
+          </div>
+          <span id="plan-expiry" class="plan-expiry"></span>
+        </div>
+        <p id="glm-stale" class="stale-note" role="status" hidden></p>
         <div id="limits" class="limits"></div>
         <div id="mcp-wrap" class="mcp"></div>
       </section>
-      <section id="pane-go" class="pane">
-        <div class="pane-title"><i class="pdot go"></i><span class="pname">OpenCode Go</span><span id="go-expiry" class="plan-expiry"></span></div>
+      <section id="pane-go" class="pane" hidden>
+        <div class="pane-title">
+          <div class="pane-title-main"><i class="pdot go"></i><span class="pname">OpenCode Go</span><button id="btn-go-open" class="link-btn" title="打开 OpenCode 官方面板" aria-label="打开 OpenCode 官方面板"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button></div>
+          <span id="go-expiry" class="plan-expiry"></span>
+        </div>
+        <p id="go-stale" class="stale-note" role="status" hidden></p>
         <div id="go-limits" class="limits"></div>
       </section>
+      <section id="pane-ds" class="pane" hidden>
+        <div class="pane-title"><div class="pane-title-main"><i class="pdot ds"></i><span class="pname">DeepSeek</span><span id="ds-state" class="state-pill"></span><button id="btn-ds-open" class="link-btn" title="打开 DeepSeek 开放平台" aria-label="打开 DeepSeek 开放平台"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button></div></div>
+        <p id="ds-stale" class="stale-note" role="status" hidden></p>
+        <div id="ds-cards" class="limits"></div>
+      </section>
     </div>
+
     <footer class="foot">
       <span id="last-updated" class="muted"></span>
       <span id="foot-refresh" class="muted"></span>

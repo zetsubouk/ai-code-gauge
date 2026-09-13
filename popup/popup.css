@@ -118,11 +118,15 @@ body.wide .panes { grid-template-columns: 1fr 1fr; }
 /* 三家呈现（方案一）：排序末位面板跨双列，卡内部并排，避免 2×2 网格缺角 */
 .pane.span2 { grid-column: 1 / -1; }
 .pane.span2 .limits { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-/* 面板标题行：供应商名 + 订阅徽章 + 到期日期（订阅信息随所属面板，跨栏不串位） */
+/* 面板标题：第一行「名称 + 徽章 + 外链」，第二行到期独占一行。
+   为什么拆两行：双栏时面板内容宽仅 ~235px，临期文案「到期 YYYY-MM-DD（剩 X 天）」
+   约 150px 且不许截断（临期天数是关键提醒），单行必然挤压供应商名成「智谱 G…」。 */
 .pane-title {
   font-size: 12.5px; font-weight: 700; color: var(--text);
-  margin: 0 0 9px; display: flex; align-items: center; gap: 7px; min-width: 0;
+  margin: 0 0 9px; display: flex; flex-direction: column; align-items: stretch;
+  gap: 2px; min-width: 0;
 }
+.pane-title-main { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .pdot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 .pdot.glm { background: var(--accent-2); }
 .pdot.go { background: #4f8cff; }
@@ -142,9 +146,11 @@ body.wide .panes { grid-template-columns: 1fr 1fr; }
   font-size: 10px; font-weight: 700; color: #fff;
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
 }
+/* 到期独占一行后不再参与 flex 分配，左缩进与上方名称对齐（圆点 8px + 间距 7px） */
 .plan-expiry {
   font-size: 11px; font-weight: 600; color: var(--muted);
-  flex: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding-left: 15px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
 }
 .plan-expiry.warn { color: var(--warn); }
 .plan-expiry.bad { color: var(--bad); }
