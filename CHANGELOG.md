@@ -3,6 +3,15 @@
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [未发布]
+
+### Fixed
+- **面板标题不再被到期文案挤压截断**：套餐临期时「（剩 X 天）」警示后缀使到期文案变长，原单行标题布局会把供应商名挤压成「智谱 G…」「Op…」；面板标题改为两行结构——第一行「供应商名 + 订阅徽章 + 官方面板按钮」，第二行到期信息独占一行并与名称左对齐，临期黄/过期红警示保留，无到期数据时不占空间。
+- **渲染验证工具修复**：`scripts/harness.html` 按当前 popup.html 结构同构重写（补齐 DeepSeek 面板、官方面板按钮等缺失元素），修复其加载即抛错、完全无法渲染的问题；样例数据覆盖临期警示场景。
+
+### Changed
+- **发版规则固化：打包产物带版本号**：`scripts/package.py` 产物命名改为 `dist/ai-code-gauge-vX.Y.Z.zip`（版本号取自 manifest），GitHub Release 附件、CI artifact 与相关文档同步该命名；完整规则落入 CONTRIBUTING.md「发版规则」，后续发版统一执行。
+
 ## [1.6.0] - 2026-09-09
 
 ### Added

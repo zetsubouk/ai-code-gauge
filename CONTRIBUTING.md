@@ -54,6 +54,22 @@
 - 中文界面文案；代码注释保持简洁。
 - 修改 `shared/constants.js` / `shared/api.js` 涉及接口契约时，务必同步更新 `docs/API.md`。
 
+## 发版规则
+
+发版统一使用一键脚本，产物命名带版本号是硬性规则：
+
+1. **版本号**：遵循 [SemVer](https://semver.org/lang/zh-CN/)；`manifest.json` 与 `package.json` 的 `version` 必须一致（打包脚本会校验）。
+2. **产物命名**：打包产物固定为 `dist/ai-code-gauge-vX.Y.Z.zip`（`scripts/package.py` 自动从 manifest 取版本号命名），GitHub Release 附件与 CI artifact 同名，不带版本号的产物一律视为无效。
+3. **发版流程**：
+   - 在 `CHANGELOG.md` 顶部「## [未发布]」区写清本次变更（该区为空则无法发版）；
+   - 在 main 分支、工作区干净的前提下执行：
+     ```bash
+     python scripts/release.py X.Y.Z --push --github
+     ```
+   - 脚本自动完成：跑测试 → 同步三处版本号与 CHANGELOG → 提交 `chore(release): vX.Y.Z` 并打 tag → 推送 main 与 tag → 打包带版本号的 zip → 创建 GitHub Release 并上传该 zip。
+
+后续每次发版均按此规则执行，不手工改版本号、不手工打包改名。
+
 ## Issue / PR 模板
 
 提交前可参考以下模板结构（Issue 或 PR 描述）：

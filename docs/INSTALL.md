@@ -28,7 +28,7 @@
 ## 四、打包发布（Chrome Web Store 用）
 
 ```bash
-npm run build        # 在项目根目录执行，生成 dist/ai-code-gauge.zip
+npm run build        # 在项目根目录执行，生成 dist/ai-code-gauge-vX.Y.Z.zip（版本号取自 manifest）
 ```
 
 产物内含 `manifest.json / icons / background / popup / shared`，可直接上传到

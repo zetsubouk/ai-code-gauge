@@ -12,7 +12,7 @@
   4. 同步 manifest.json 与 package.json 的 version 字段（仅替换该行，不动其余格式）；
   5. 提交 chore(release): vX.Y.Z 并打轻量 tag（与历史一致）；
   6. --push：推送 main 与 tag，触发 CI 打包 zip artifact；
-  7. --github：本地 npm run build 产出 dist/ai-code-gauge.zip，用 gh 创建
+  7. --github：本地 npm run build 产出 dist/ai-code-gauge-vX.Y.Z.zip，用 gh 创建
      GitHub Release（正文取 CHANGELOG 该版本段落 + 固定安装页脚，与历史版本一致）。
 """
 import os
@@ -26,9 +26,10 @@ from datetime import date
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VERSION_FILES = ("manifest.json", "package.json")
 UNRELEASED_HEADER = "## [未发布]"
+# 发版规则：产物与 Release 附件统一命名为 ai-code-gauge-vX.Y.Z.zip（版本号占位 {ver}）
 INSTALL_FOOTER = (
     "\n---\n\n"
-    "**安装**：下载 `ai-code-gauge.zip` 解压后，在 `chrome://extensions` 开启开发者模式并"
+    "**安装**：下载 `ai-code-gauge-v{ver}.zip` 解压后，在 `chrome://extensions` 开启开发者模式并"
     "「加载已解压的扩展程序」。详见 docs/INSTALL.md。\n"
 )
 
@@ -136,15 +137,16 @@ def main():
     if "--github" in flags:
         if not shutil.which("gh"):
             fail("未找到 gh 命令，请安装 GitHub CLI 后手动执行："
-                 f"gh release create {tag} dist/ai-code-gauge.zip")
+                 f"gh release create {tag} dist/ai-code-gauge-v{ver}.zip")
         print("== 本地打包 ==")
+        zip_name = f"ai-code-gauge-v{ver}.zip"
         r = run("npm run build")
-        if r.returncode != 0 or not os.path.exists(os.path.join(ROOT, "dist", "ai-code-gauge.zip")):
+        if r.returncode != 0 or not os.path.exists(os.path.join(ROOT, "dist", zip_name)):
             fail("打包失败：\n" + r.stdout)
         notes_file = os.path.join(tempfile.gettempdir(), f"release-notes-{tag}.md")
         with open(notes_file, "w", encoding="utf-8", newline="\n") as f:
-            f.write(notes + "\n" + INSTALL_FOOTER)
-        r = run(f'gh release create {tag} dist/ai-code-gauge.zip '
+            f.write(notes + "\n" + INSTALL_FOOTER.format(ver=ver))
+        r = run(f'gh release create {tag} dist/{zip_name} '
                 f'--title "AI Coding Gauge {tag}" --notes-file "{notes_file}"')
         os.remove(notes_file)
         if r.returncode != 0:

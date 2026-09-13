@@ -86,7 +86,7 @@
 4. 点击「加载已解压的扩展程序」，选择项目根目录（含 `manifest.json` 的目录）。
 5. 浏览器工具栏出现扩展图标。
 
-> 也可以在 [Releases](https://github.com/zetsubouk/ai-code-gauge/releases) 下载 `ai-code-gauge.zip`，解压后按上述步骤加载。
+> 也可以在 [Releases](https://github.com/zetsubouk/glm-coding-plan-monitor/releases) 下载 `ai-code-gauge-vX.Y.Z.zip`（文件名带版本号，任选最新版），解压后按上述步骤加载。
 
 ### 方式二：Chrome Web Store（正式发布后）
 

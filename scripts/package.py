@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-"""打包扩展为 dist/ai-code-gauge.zip（仅运行时文件，无第三方依赖）。
+"""打包扩展为 dist/ai-code-gauge-vX.Y.Z.zip（仅运行时文件，无第三方依赖）。
 
-运行清单 = 基础目录 ∪ manifest.json 引用的文件；manifest 引用了但不存在的文件
-直接报错退出，防止商店包静默缺文件（如未来新增 _locales/options 页）。
-同时校验 manifest 与 package.json 的版本号一致。
+产物文件名带版本号（取自 manifest.json），为发版规则的唯一产物命名来源；
+manifest 引用了但不存在的文件直接报错退出，防止商店包静默缺文件
+（如未来新增 _locales/options 页）。同时校验 manifest 与 package.json 的版本号一致。
 """
 import json
 import os
@@ -53,7 +53,8 @@ def main():
             standalone.append(ref)
 
     os.makedirs(DIST, exist_ok=True)
-    out = os.path.join(DIST, "ai-code-gauge.zip")
+    # 发版规则：产物文件名必须带版本号（ai-code-gauge-vX.Y.Z.zip）
+    out = os.path.join(DIST, f"ai-code-gauge-v{manifest['version']}.zip")
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
         for d in dirs:
             src = os.path.join(ROOT, d)

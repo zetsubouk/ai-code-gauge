@@ -45,5 +45,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ai-code-gauge
-          path: dist/ai-code-gauge.zip
+          # 发版规则：产物带版本号（tag 名即 vX.Y.Z，与 package.py 命名一致）
+          name: ai-code-gauge-${{ github.ref_name }}
+          path: dist/ai-code-gauge-*.zip
